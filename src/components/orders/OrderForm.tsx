@@ -3,7 +3,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
-import * as _ from "lodash"; // For _.debounce
+// import * as _ from "lodash"; // Removed lodash import
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +24,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadcnCardDescription, CardFooter } from "@/components/ui/card";
 import { Loader2, ShoppingCart, PlusCircle, Trash2, Info } from "lucide-react";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 const orderItemSchema = z.object({
   productId: z.string().min(1, { message: "Product must be selected." }),
@@ -86,23 +86,15 @@ export function OrderForm() {
     setCalculatedTotals({ subtotal, totalDiscount, grandTotal });
   }, [setCalculatedTotals]);
 
-  const debouncedCalculateAndUpdateTotals = useMemo(
-    () => _.debounce(calculateAndUpdateTotalsInternal, 300),
-    [calculateAndUpdateTotalsInternal]
-  );
 
   useEffect(() => {
     if (watchedItems && watchedItems.length > 0) {
-      debouncedCalculateAndUpdateTotals(watchedItems);
+      calculateAndUpdateTotalsInternal(watchedItems); // Call directly for immediate updates
     } else {
       setCalculatedTotals({ subtotal: 0, totalDiscount: 0, grandTotal: 0 });
-      debouncedCalculateAndUpdateTotals.cancel();
     }
-
-    return () => {
-      debouncedCalculateAndUpdateTotals.cancel();
-    };
-  }, [watchedItems, debouncedCalculateAndUpdateTotals]);
+    // No cleanup for debouncing needed anymore
+  }, [watchedItems, calculateAndUpdateTotalsInternal]);
 
 
   const handleProductChange = (itemIndex: number, productId: string) => {
