@@ -36,6 +36,9 @@ import {
 type SortableTransactionColumns = 'productName' | 'type' | 'quantityChange' | 'timestamp' | 'totalValue';
 type SortDirection = 'asc' | 'desc';
 
+const ALL_TYPES_SELECT_ITEM_VALUE = "__ALL_TYPES__";
+const ALL_PRODUCTS_SELECT_ITEM_VALUE = "__ALL_PRODUCTS__";
+
 export default function HistoryPage() {
   const { transactions, products, isLoading } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,19 +139,37 @@ export default function HistoryPage() {
                   className="font-body pl-10 h-10"
                 />
               </div>
-              <Select value={filterType} onValueChange={setFilterType}>
+              <Select 
+                value={filterType} 
+                onValueChange={(selectedValue) => {
+                  if (selectedValue === ALL_TYPES_SELECT_ITEM_VALUE) {
+                    setFilterType('');
+                  } else {
+                    setFilterType(selectedValue);
+                  }
+                }}
+              >
                 <SelectTrigger className="font-body h-10"><SelectValue placeholder="Filter by Type" /></SelectTrigger>
                 <SelectContent className="font-body">
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value={ALL_TYPES_SELECT_ITEM_VALUE}>All Types</SelectItem>
                   {transactionTypes.map(type => (
                     <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filterProduct} onValueChange={setFilterProduct}>
+              <Select 
+                value={filterProduct} 
+                onValueChange={(selectedValue) => {
+                  if (selectedValue === ALL_PRODUCTS_SELECT_ITEM_VALUE) {
+                    setFilterProduct('');
+                  } else {
+                    setFilterProduct(selectedValue);
+                  }
+                }}
+              >
                 <SelectTrigger className="font-body h-10"><SelectValue placeholder="Filter by Product" /></SelectTrigger>
                 <SelectContent className="font-body">
-                  <SelectItem value="">All Products</SelectItem>
+                  <SelectItem value={ALL_PRODUCTS_SELECT_ITEM_VALUE}>All Products</SelectItem>
                   {products.map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
