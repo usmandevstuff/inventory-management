@@ -3,7 +3,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
-// import * as _ from "lodash"; // Removed lodash import
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,19 +46,13 @@ export function OrderForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [calculatedTotals, setCalculatedTotals] = useState({
-    subtotal: 0,
-    totalDiscount: 0,
-    grandTotal: 0,
-  });
-
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderFormSchema),
     defaultValues: {
       items: [{ productId: "", productName: "", quantity: 1, unitPrice: 0, discount: 0 }],
       notes: "",
     },
-    mode: "onChange",
+    mode: "onChange", // Ensures form.watch updates on every change
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -69,11 +62,12 @@ export function OrderForm() {
 
   const watchedItems = form.watch("items");
 
-  const calculateAndUpdateTotalsInternal = useCallback((currentItems: OrderFormValues['items']) => {
-    let subtotal = 0;
-    let totalDiscount = 0;
-    
-    currentItems.forEach(item => {
+  // Calculate totals directly in the render cycle
+  let subtotal = 0;
+  let totalDiscount = 0;
+
+  if (watchedItems && watchedItems.length > 0) {
+    watchedItems.forEach(item => {
       const itemUnitPrice = Number(item.unitPrice) || 0;
       const itemQuantity = Number(item.quantity) || 0;
       const itemDiscountPerUnit = Number(item.discount) || 0;
@@ -81,28 +75,17 @@ export function OrderForm() {
       subtotal += itemUnitPrice * itemQuantity;
       totalDiscount += itemDiscountPerUnit * itemQuantity;
     });
-
-    const grandTotal = subtotal - totalDiscount;
-    setCalculatedTotals({ subtotal, totalDiscount, grandTotal });
-  }, [setCalculatedTotals]);
-
-
-  useEffect(() => {
-    if (watchedItems && watchedItems.length > 0) {
-      calculateAndUpdateTotalsInternal(watchedItems); // Call directly for immediate updates
-    } else {
-      setCalculatedTotals({ subtotal: 0, totalDiscount: 0, grandTotal: 0 });
-    }
-    // No cleanup for debouncing needed anymore
-  }, [watchedItems, calculateAndUpdateTotalsInternal]);
-
+  }
+  const grandTotal = subtotal - totalDiscount;
 
   const handleProductChange = (itemIndex: number, productId: string) => {
     const product = getProductById(productId);
     if (product) {
       form.setValue(`items.${itemIndex}.productName`, product.name, { shouldValidate: true });
       form.setValue(`items.${itemIndex}.unitPrice`, product.price, { shouldValidate: true });
-      form.setValue(`items.${itemIndex}.discount`, 0, { shouldValidate: true }); 
+      form.setValue(`items.${itemIndex}.discount`, 0, { shouldValidate: true });
+      // Trigger validation for dependent fields if necessary
+      form.trigger(`items.${itemIndex}.quantity`);
     }
   };
 
@@ -113,10 +96,10 @@ export function OrderForm() {
         const finalUnitPrice = (Number(item.unitPrice) || 0) - (Number(item.discount) || 0);
         return {
           productId: item.productId,
-          productName: item.productName, 
+          productName: item.productName,
           quantity: Number(item.quantity),
           unitPrice: Number(item.unitPrice),
-          discount: Number(item.discount), 
+          discount: Number(item.discount) || 0,
           finalUnitPrice: finalUnitPrice,
           lineTotal: finalUnitPrice * (Number(item.quantity)),
         };
@@ -125,14 +108,14 @@ export function OrderForm() {
       addOrder({
         items: orderItems,
         notes: data.notes,
-        subtotal: calculatedTotals.subtotal,
-        totalDiscount: calculatedTotals.totalDiscount,
-        grandTotal: calculatedTotals.grandTotal,
+        subtotal: subtotal, // Use directly calculated subtotal
+        totalDiscount: totalDiscount, // Use directly calculated totalDiscount
+        grandTotal: grandTotal, // Use directly calculated grandTotal
       });
 
       toast({ title: "Success", description: "Order created successfully." });
       form.reset();
-      router.push("/history"); 
+      router.push("/history");
       router.refresh();
     } catch (error) {
       console.error("Failed to create order:", error);
@@ -142,7 +125,7 @@ export function OrderForm() {
     }
   }
   
-  if (storeIsLoading) {
+  if (storeIsLoading && !products.length) { // Added check for products.length to avoid flash if store is loading but products are already there
     return <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
@@ -159,10 +142,14 @@ export function OrderForm() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="space-y-6">
               {fields.map((field, index) => {
-                const currentItem = watchedItems[index] || {};
+                const currentItem = watchedItems[index] || {}; // get latest data
                 const product = currentItem.productId ? getProductById(currentItem.productId) : null;
-                const finalUnitPrice = (Number(currentItem.unitPrice) || 0) - (Number(currentItem.discount) || 0);
-                const lineTotal = finalUnitPrice * (Number(currentItem.quantity) || 0);
+                const itemUnitPrice = Number(currentItem.unitPrice) || 0;
+                const itemQuantity = Number(currentItem.quantity) || 0;
+                const itemDiscountPerUnit = Number(currentItem.discount) || 0;
+                
+                const finalUnitPrice = itemUnitPrice - itemDiscountPerUnit;
+                const lineTotal = finalUnitPrice * itemQuantity;
 
                 return (
                   <Card key={field.id} className="p-4 bg-secondary/30 border-primary/20 rounded-md">
@@ -187,7 +174,7 @@ export function OrderForm() {
                               </FormControl>
                               <SelectContent className="font-body">
                                 {products.map((p) => (
-                                  <SelectItem key={p.id} value={p.id} disabled={p.stock <= 0}>
+                                  <SelectItem key={p.id} value={p.id} disabled={p.stock <= 0 && p.id !== controllerField.value}>
                                     {p.name} (Stock: {p.stock})
                                   </SelectItem>
                                 ))}
@@ -253,7 +240,7 @@ export function OrderForm() {
                         )}
                       </div>
                     </div>
-                    {product && watchedItems[index]?.quantity > product.stock && (
+                    {product && itemQuantity > product.stock && (
                         <p className="text-xs text-destructive mt-2 flex items-center"><Info className="h-3 w-3 mr-1"/>Quantity exceeds available stock ({product.stock}).</p>
                     )}
                   </Card>
@@ -286,16 +273,16 @@ export function OrderForm() {
                 <CardContent className="space-y-2 font-body text-md">
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Subtotal:</span>
-                        <span className="font-semibold">${calculatedTotals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="font-semibold">${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Total Discount:</span>
-                        <span className="font-semibold text-green-600">-${calculatedTotals.totalDiscount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="font-semibold text-green-600">-${totalDiscount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                     <hr className="my-2 border-border"/>
                     <div className="flex justify-between text-lg">
                         <span className="font-bold text-primary">Grand Total:</span>
-                        <span className="font-extrabold text-primary">${calculatedTotals.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="font-extrabold text-primary">${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                 </CardContent>
             </Card>
@@ -305,7 +292,11 @@ export function OrderForm() {
               <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting} className="font-body text-base py-2 px-6">
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || storeIsLoading || form.formState.isSubmitting || !form.formState.isValid} className="font-body bg-accent text-accent-foreground hover:bg-accent/90 text-base py-2 px-6">
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || storeIsLoading || form.formState.isSubmitting || !form.formState.isValid || watchedItems.some(item => (getProductById(item.productId)?.stock ?? 0) < item.quantity)}
+                className="font-body bg-accent text-accent-foreground hover:bg-accent/90 text-base py-2 px-6"
+              >
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Create Order
               </Button>
@@ -317,3 +308,4 @@ export function OrderForm() {
   );
 }
 
+    
