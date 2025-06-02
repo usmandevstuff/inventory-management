@@ -2,13 +2,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Product, Transaction } from '@/lib/types';
+import type { Product, Transaction, Order, OrderItem } from '@/lib/types';
 // @ts-ignore
 import { v4 as uuidv4 } from 'uuid'; // Ignoring for scaffold, in real app ensure uuid types are installed
 
 interface StoreContextType {
   products: Product[];
   transactions: Transaction[];
+  orders: Order[];
   addProduct: (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'stock'>, initialStock: number) => Product;
   updateProduct: (productId: string, productData: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) => Product | undefined;
   deleteProduct: (productId: string) => void;
@@ -16,6 +17,8 @@ interface StoreContextType {
   addTransaction: (transactionData: Omit<Transaction, 'id' | 'timestamp' | 'productName' | 'stockBefore' | 'stockAfter'> & { productName?: string, stockBefore?: number, stockAfter?: number }) => Transaction;
   getProductStock: (productId: string) => number;
   updateStock: (productId: string, quantityChange: number, type: Transaction['type'], notes?: string, pricePerUnit?: number) => Product | undefined;
+  addOrder: (orderData: Omit<Order, 'id' | 'orderDate' | 'orderNumber' | 'status'>) => Order;
+  getOrderById: (orderId: string) => Order | undefined;
   isLoading: boolean;
 }
 
@@ -23,6 +26,7 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 const PRODUCTS_KEY = 'threadcount_products';
 const TRANSACTIONS_KEY = 'threadcount_transactions';
+const ORDERS_KEY = 'threadcount_orders';
 
 const initialProducts: Product[] = [
   {
@@ -40,19 +44,22 @@ const initialProducts: Product[] = [
 export const StoreProvider = ({ children }: { children: ReactNode }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let loadedProducts: Product[] = [];
     let loadedTransactions: Transaction[] = [];
+    let loadedOrders: Order[] = [];
     try {
       const storedProducts = localStorage.getItem(PRODUCTS_KEY);
       const storedTransactions = localStorage.getItem(TRANSACTIONS_KEY);
+      const storedOrders = localStorage.getItem(ORDERS_KEY);
 
       if (storedProducts) {
         loadedProducts = JSON.parse(storedProducts);
       } else {
-        loadedProducts = initialProducts; // Use initial if nothing stored
+        loadedProducts = initialProducts; 
       }
       setProducts(loadedProducts);
 
@@ -60,12 +67,9 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         loadedTransactions = JSON.parse(storedTransactions);
       }
       
-      // Ensure initial transactions for initialProducts are present if they aren't already
-      // This is a bit complex due to potential partial loads or clears.
-      // A simpler approach: if products are initial, transactions for them should be there.
       if (!storedProducts && loadedProducts === initialProducts) {
           const initialStockTransactions: Transaction[] = initialProducts
-            .filter(p => !loadedTransactions.some(lt => lt.productId === p.id && lt.type === 'initial')) // only add if not present
+            .filter(p => !loadedTransactions.some(lt => lt.productId === p.id && lt.type === 'initial')) 
             .map(p => ({
                 id: uuidv4(),
                 productId: p.id,
@@ -81,12 +85,18 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       }
       setTransactions(loadedTransactions);
 
+      if (storedOrders) {
+        loadedOrders = JSON.parse(storedOrders);
+      }
+      setOrders(loadedOrders);
+
     } catch (error) {
       console.error("Failed to access localStorage or parse data:", error);
       setProducts(initialProducts); 
       setTransactions(initialProducts.map(p => ({
         id: uuidv4(), productId: p.id, productName: p.name, type: 'initial', quantityChange: p.stock, stockBefore: 0, stockAfter: p.stock, timestamp: new Date().toISOString(), notes: 'Initial stock load (fallback)'
       })));
+      setOrders([]);
     }
     setIsLoading(false);
   }, []);
@@ -111,6 +121,16 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [transactions, isLoading]);
 
+  useEffect(() => {
+    if (!isLoading) {
+      try {
+        localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+      } catch (error) {
+        console.error("Failed to save orders to localStorage:", error);
+      }
+    }
+  }, [orders, isLoading]);
+
   const addProduct = (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'stock'>, initialStock: number): Product => {
     const newProduct: Product = {
       ...productData,
@@ -120,7 +140,6 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       updatedAt: new Date().toISOString(),
     };
     setProducts(prev => [...prev, newProduct]);
-    // The transaction will be added via updateStock or specific stock op
     addTransaction({
       productId: newProduct.id,
       productName: newProduct.name,
@@ -189,11 +208,34 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
             stockBefore,
             stockAfter: newStock,
             notes,
-            pricePerUnit: type === 'sale' ? (pricePerUnit || product.price) : undefined,
-            totalValue: type === 'sale' ? Math.abs(quantityChange) * (pricePerUnit || product.price) : undefined,
+            pricePerUnit: (type === 'sale' && quantityChange < 0) ? (pricePerUnit || product.price) : undefined,
+            totalValue: (type === 'sale' && quantityChange < 0) ? Math.abs(quantityChange) * (pricePerUnit || product.price) : undefined,
         });
     }
     return updatedProd;
+  };
+
+  const addOrder = (orderData: Omit<Order, 'id' | 'orderDate' | 'orderNumber' | 'status'>): Order => {
+    const newOrderNumber = `ORD-${String(orders.length + 1).padStart(4, '0')}`;
+    const newOrder: Order = {
+      ...orderData,
+      id: uuidv4(),
+      orderNumber: newOrderNumber,
+      orderDate: new Date().toISOString(),
+      status: 'completed', // Default to completed for now
+    };
+
+    // Process stock updates and transactions for each item
+    newOrder.items.forEach(item => {
+      updateStock(item.productId, -item.quantity, 'sale', `Order ${newOrder.orderNumber} - ${item.productName}`, item.finalUnitPrice);
+    });
+    
+    setOrders(prev => [newOrder, ...prev]);
+    return newOrder;
+  };
+
+  const getOrderById = (orderId: string): Order | undefined => {
+    return orders.find(o => o.id === orderId);
   };
 
 
@@ -201,6 +243,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     <StoreContext.Provider value={{ 
         products, 
         transactions, 
+        orders,
         addProduct, 
         updateProduct, 
         deleteProduct,
@@ -208,6 +251,8 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         addTransaction, 
         getProductStock, 
         updateStock,
+        addOrder,
+        getOrderById,
         isLoading 
     }}>
       {children}

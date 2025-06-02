@@ -14,14 +14,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useState, useMemo } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO, isValid } from 'date-fns';
-import { Calendar as CalendarIcon, Filter, ListFilter, Loader2, Receipt, Search, ChevronDown, ChevronUp, XCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, ListFilter, Loader2, Receipt, Search, ChevronDown, ChevronUp, XCircle, ShoppingBag } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import type { Transaction } from '@/lib/types';
+import type { Order, OrderItem } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -33,52 +32,49 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 
-type SortableTransactionColumns = 'productName' | 'type' | 'quantityChange' | 'timestamp' | 'totalValue';
+type SortableOrderColumns = 'orderNumber' | 'orderDate' | 'grandTotal' | 'status';
 type SortDirection = 'asc' | 'desc';
 
-const ALL_TYPES_SELECT_ITEM_VALUE = "__ALL_TYPES__";
-const ALL_PRODUCTS_SELECT_ITEM_VALUE = "__ALL_PRODUCTS__";
-
 export default function HistoryPage() {
-  const { transactions, products, isLoading } = useStore();
+  const { orders, isLoading } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<string>('');
-  const [filterProduct, setFilterProduct] = useState<string>('');
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
-  const [sortColumn, setSortColumn] = useState<SortableTransactionColumns>('timestamp');
+  const [sortColumn, setSortColumn] = useState<SortableOrderColumns>('orderDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
-  const transactionTypes = useMemo(() => Array.from(new Set(transactions.map(t => t.type))).sort(), [transactions]);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-  const filteredAndSortedTransactions = useMemo(() => {
-    let filtered = transactions.filter(tx => {
-      const txDate = parseISO(tx.timestamp);
-      if (!isValid(txDate)) return false; // Skip invalid dates
 
-      const matchesSearch = tx.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (tx.notes && tx.notes.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesType = filterType ? tx.type === filterType : true;
-      const matchesProduct = filterProduct ? tx.productId === filterProduct : true;
-      const matchesDate = (!dateRange.from || txDate >= dateRange.from) && 
-                          (!dateRange.to || txDate <= new Date(dateRange.to.setHours(23,59,59,999)));
-      return matchesSearch && matchesType && matchesProduct && matchesDate;
+  const filteredAndSortedOrders = useMemo(() => {
+    let filtered = orders.filter(order => {
+      const orderDate = parseISO(order.orderDate);
+      if (!isValid(orderDate)) return false;
+
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      const matchesSearch = 
+        order.orderNumber.toLowerCase().includes(lowerSearchTerm) ||
+        (order.notes && order.notes.toLowerCase().includes(lowerSearchTerm)) ||
+        order.items.some(item => item.productName.toLowerCase().includes(lowerSearchTerm));
+
+      const matchesDate = (!dateRange.from || orderDate >= dateRange.from) && 
+                          (!dateRange.to || orderDate <= new Date(dateRange.to.setHours(23,59,59,999)));
+      return matchesSearch && matchesDate;
     });
 
     return filtered.sort((a, b) => {
       let compareA, compareB;
       switch(sortColumn) {
-        case 'quantityChange':
-          compareA = a.quantityChange;
-          compareB = b.quantityChange;
+        case 'grandTotal':
+          compareA = a.grandTotal;
+          compareB = b.grandTotal;
           break;
-        case 'totalValue':
-          compareA = a.totalValue || 0;
-          compareB = b.totalValue || 0;
-          break;
-        case 'timestamp':
-          compareA = parseISO(a.timestamp).getTime();
-          compareB = parseISO(b.timestamp).getTime();
+        case 'orderDate':
+          compareA = parseISO(a.orderDate).getTime();
+          compareB = parseISO(b.orderDate).getTime();
           break;
         default: 
           compareA = (a[sortColumn] || '').toLowerCase();
@@ -88,18 +84,18 @@ export default function HistoryPage() {
       if (compareA > compareB) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [transactions, searchTerm, filterType, filterProduct, dateRange, sortColumn, sortDirection]);
+  }, [orders, searchTerm, dateRange, sortColumn, sortDirection]);
 
-  const handleSort = (column: SortableTransactionColumns) => {
+  const handleSort = (column: SortableOrderColumns) => {
     if (sortColumn === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortColumn(column);
-      setSortDirection(column === 'timestamp' ? 'desc' : 'asc');
+      setSortDirection(column === 'orderDate' ? 'desc' : 'asc');
     }
   };
   
-  const SortIndicator = ({ column }: { column: SortableTransactionColumns }) => {
+  const SortIndicator = ({ column }: { column: SortableOrderColumns }) => {
     if (sortColumn !== column) return <ChevronDown className="h-4 w-4 inline ml-1 opacity-30" />;
     return sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 inline ml-1 text-primary" /> : <ChevronDown className="h-4 w-4 inline ml-1 text-primary" />;
   };
@@ -107,74 +103,36 @@ export default function HistoryPage() {
   const handlePrintInvoice = () => {
     const printContents = document.getElementById("invoice-print-area")?.innerHTML;
     const originalContents = document.body.innerHTML;
-    if (printContents) {
-        document.body.innerHTML = printContents;
+    if (printContents && isClient) {
+        document.body.innerHTML = `<div class="print-container p-8">${printContents}</div><style>@media print { body * { visibility: hidden; } .print-container, .print-container * { visibility: visible; } .print-container { position: absolute; left: 0; top: 0; width: 100%; } }</style>`;
         window.print();
         document.body.innerHTML = originalContents;
-        // Re-initialize any event listeners if needed, or simply reload the page for complex scenarios
-        // For this simple case, restoring originalContents should be okay, but React state might be lost.
-        // A better approach for complex apps is a dedicated print view or iframe.
-        window.location.reload(); // Simplest way to restore state & listeners
+        window.location.reload(); 
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !isClient) { // Show loader only if not yet client-side hydrated and still loading
     return <MainAppLayoutWrapper><div className="flex justify-center items-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div></MainAppLayoutWrapper>;
   }
+
 
   return (
     <MainAppLayoutWrapper>
       <div className="space-y-6">
-        <h1 className="font-headline text-4xl text-primary">Transaction History</h1>
+        <h1 className="font-headline text-4xl text-primary">Order History</h1>
         
         <Card className="shadow-xl rounded-lg">
           <CardHeader className="border-b">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search product or notes..."
+                  placeholder="Search by Order ID, product, notes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="font-body pl-10 h-10"
                 />
               </div>
-              <Select 
-                value={filterType} 
-                onValueChange={(selectedValue) => {
-                  if (selectedValue === ALL_TYPES_SELECT_ITEM_VALUE) {
-                    setFilterType('');
-                  } else {
-                    setFilterType(selectedValue);
-                  }
-                }}
-              >
-                <SelectTrigger className="font-body h-10"><SelectValue placeholder="Filter by Type" /></SelectTrigger>
-                <SelectContent className="font-body">
-                  <SelectItem value={ALL_TYPES_SELECT_ITEM_VALUE}>All Types</SelectItem>
-                  {transactionTypes.map(type => (
-                    <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select 
-                value={filterProduct} 
-                onValueChange={(selectedValue) => {
-                  if (selectedValue === ALL_PRODUCTS_SELECT_ITEM_VALUE) {
-                    setFilterProduct('');
-                  } else {
-                    setFilterProduct(selectedValue);
-                  }
-                }}
-              >
-                <SelectTrigger className="font-body h-10"><SelectValue placeholder="Filter by Product" /></SelectTrigger>
-                <SelectContent className="font-body">
-                  <SelectItem value={ALL_PRODUCTS_SELECT_ITEM_VALUE}>All Products</SelectItem>
-                  {products.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal font-body h-10">
@@ -204,76 +162,99 @@ export default function HistoryPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            {filteredAndSortedTransactions.length === 0 ? (
+            {filteredAndSortedOrders.length === 0 ? (
                <div className="text-center py-12 text-muted-foreground font-body">
-                <ListFilter className="mx-auto h-16 w-16 mb-4 text-gray-400" />
-                <h3 className="text-xl font-semibold mb-2 font-headline">No Transactions Found</h3>
-                <p>Try adjusting your search or filters, or check back later.</p>
+                <ShoppingBag className="mx-auto h-16 w-16 mb-4 text-gray-400" />
+                <h3 className="text-xl font-semibold mb-2 font-headline">No Orders Found</h3>
+                <p>{searchTerm || dateRange.from || dateRange.to ? "Try adjusting your search or filters." : "No orders have been placed yet."}</p>
               </div>
             ) : (
             <div className="overflow-x-auto -mx-6 px-6">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead onClick={() => handleSort('timestamp')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Date <SortIndicator column="timestamp"/></TableHead>
-                    <TableHead onClick={() => handleSort('productName')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Product <SortIndicator column="productName"/></TableHead>
-                    <TableHead onClick={() => handleSort('type')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Type <SortIndicator column="type"/></TableHead>
-                    <TableHead onClick={() => handleSort('quantityChange')} className="text-right cursor-pointer hover:text-primary font-headline text-sm p-3">Quantity <SortIndicator column="quantityChange"/></TableHead>
-                     <TableHead className="hidden md:table-cell text-right font-headline text-sm p-3">Stock Before</TableHead>
-                    <TableHead className="hidden md:table-cell text-right font-headline text-sm p-3">Stock After</TableHead>
-                    <TableHead onClick={() => handleSort('totalValue')} className="text-right hidden sm:table-cell cursor-pointer hover:text-primary font-headline text-sm p-3">Value <SortIndicator column="totalValue"/></TableHead>
-                    <TableHead className="text-center font-headline text-sm p-3">Details</TableHead>
+                    <TableHead onClick={() => handleSort('orderNumber')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Order ID <SortIndicator column="orderNumber"/></TableHead>
+                    <TableHead onClick={() => handleSort('orderDate')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Date <SortIndicator column="orderDate"/></TableHead>
+                    <TableHead className="font-headline text-sm p-3">Items</TableHead>
+                    <TableHead onClick={() => handleSort('grandTotal')} className="text-right cursor-pointer hover:text-primary font-headline text-sm p-3">Total <SortIndicator column="grandTotal"/></TableHead>
+                    <TableHead onClick={() => handleSort('status')} className="text-center cursor-pointer hover:text-primary font-headline text-sm p-3">Status <SortIndicator column="status"/></TableHead>
+                    <TableHead className="text-center font-headline text-sm p-3">Invoice</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAndSortedTransactions.map((tx) => (
-                    <TableRow key={tx.id} className="hover:bg-secondary/50 transition-colors font-body">
-                      <TableCell className="p-3">{format(parseISO(tx.timestamp), 'PP pp')}</TableCell>
-                      <TableCell className="font-medium p-3">{tx.productName}</TableCell>
-                      <TableCell className="p-3">
+                  {filteredAndSortedOrders.map((order) => (
+                    <TableRow key={order.id} className="hover:bg-secondary/50 transition-colors font-body">
+                      <TableCell className="font-medium p-3">{order.orderNumber}</TableCell>
+                      <TableCell className="p-3">{format(parseISO(order.orderDate), 'PP pp')}</TableCell>
+                      <TableCell className="p-3">{order.items.reduce((acc, item) => acc + item.quantity, 0)}</TableCell>
+                      <TableCell className="text-right font-medium p-3">${order.grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
+                      <TableCell className="text-center p-3">
                         <Badge 
-                          variant={tx.type === 'sale' || (tx.type==='adjustment' && tx.quantityChange < 0) ? 'destructive' : tx.type === 'restock' || tx.type === 'return' || (tx.type==='adjustment' && tx.quantityChange > 0) ? 'default' : 'secondary'}
+                          variant={order.status === 'completed' ? 'default' : order.status === 'pending' ? 'secondary' : 'destructive'}
                           className="capitalize text-xs"
                         >
-                          {tx.type}
+                          {order.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`text-right font-medium p-3 ${tx.quantityChange < 0 ? 'text-destructive' : 'text-green-600'}`}>
-                        {tx.quantityChange > 0 ? `+${tx.quantityChange}` : tx.quantityChange}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-right p-3">{tx.stockBefore}</TableCell>
-                      <TableCell className="hidden md:table-cell text-right p-3">{tx.stockAfter}</TableCell>
-                      <TableCell className="text-right hidden sm:table-cell p-3">
-                        {tx.totalValue !== undefined ? `$${tx.totalValue.toFixed(2)}` : 'N/A'}
-                      </TableCell>
                       <TableCell className="text-center p-3">
-                        <Dialog onOpenChange={(open) => !open && setSelectedTransaction(null)}>
+                        <Dialog onOpenChange={(open) => !open && setSelectedOrder(null)}>
                           <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => setSelectedTransaction(tx)} className="h-8 w-8 hover:bg-primary/10">
+                            <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(order)} className="h-8 w-8 hover:bg-primary/10">
                               <Receipt className="h-4 w-4 text-primary" />
                             </Button>
                           </DialogTrigger>
-                           {selectedTransaction && selectedTransaction.id === tx.id && ( // ensure correct dialog content
-                            <DialogContent className="sm:max-w-lg font-body" id="invoice-dialog-content">
+                           {selectedOrder && selectedOrder.id === order.id && (
+                            <DialogContent className="sm:max-w-2xl font-body" id="invoice-dialog-content">
                                 <div id="invoice-print-area">
-                                <DialogHeader className="mb-4 border-b pb-4">
-                                    <DialogTitle className="font-headline text-2xl text-primary">Transaction Details</DialogTitle>
-                                    <DialogDescription>Transaction ID: <span className="font-mono text-xs">{selectedTransaction.id}</span></DialogDescription>
+                                <DialogHeader className="mb-6 border-b pb-4">
+                                    <DialogTitle className="font-headline text-3xl text-primary">Invoice / Order Details</DialogTitle>
+                                    <div className="flex justify-between text-sm text-muted-foreground">
+                                        <span>Order ID: <span className="font-mono text-xs font-medium text-foreground">{selectedOrder.orderNumber}</span></span>
+                                        <span>Date: <span className="font-medium text-foreground">{format(parseISO(selectedOrder.orderDate), 'PPP')}</span></span>
+                                    </div>
                                 </DialogHeader>
-                                <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-                                    <span className="font-semibold text-muted-foreground">Date:</span><span>{format(parseISO(selectedTransaction.timestamp), 'PPP ppp')}</span>
-                                    <span className="font-semibold text-muted-foreground">Product:</span><span className="font-medium">{selectedTransaction.productName}</span>
-                                    <span className="font-semibold text-muted-foreground">Type:</span><span className="capitalize">{selectedTransaction.type}</span>
-                                    <span className="font-semibold text-muted-foreground">Quantity:</span><span>{selectedTransaction.quantityChange}</span>
-                                    <span className="font-semibold text-muted-foreground">Stock Before:</span><span>{selectedTransaction.stockBefore}</span>
-                                    <span className="font-semibold text-muted-foreground">Stock After:</span><span>{selectedTransaction.stockAfter}</span>
-                                    {selectedTransaction.pricePerUnit !== undefined && (<><span className="font-semibold text-muted-foreground">Price/Unit:</span><span>${selectedTransaction.pricePerUnit.toFixed(2)}</span></>)}
-                                    {selectedTransaction.totalValue !== undefined && (<><span className="font-semibold text-muted-foreground">Total Value:</span><span className="font-bold text-lg text-foreground">${selectedTransaction.totalValue.toFixed(2)}</span></>)}
-                                    {selectedTransaction.notes && (<><span className="font-semibold text-muted-foreground col-span-2">Notes:</span><p className="col-span-2 bg-secondary/30 p-2 rounded-md text-xs">{selectedTransaction.notes}</p></>)}
+                                
+                                <h3 className="font-headline text-lg text-primary mb-2">Items:</h3>
+                                <Table className="mb-6 text-sm">
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="font-semibold">Product</TableHead>
+                                            <TableHead className="text-center font-semibold">Qty</TableHead>
+                                            <TableHead className="text-right font-semibold">Price/Unit</TableHead>
+                                            <TableHead className="text-right font-semibold">Discount/Unit</TableHead>
+                                            <TableHead className="text-right font-semibold">Final Price/Unit</TableHead>
+                                            <TableHead className="text-right font-semibold">Line Total</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {selectedOrder.items.map(item => (
+                                            <TableRow key={item.productId}>
+                                                <TableCell>{item.productName}</TableCell>
+                                                <TableCell className="text-center">{item.quantity}</TableCell>
+                                                <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
+                                                <TableCell className="text-right text-green-600">${item.discount.toFixed(2)}</TableCell>
+                                                <TableCell className="text-right font-medium">${item.finalUnitPrice.toFixed(2)}</TableCell>
+                                                <TableCell className="text-right font-bold">${item.lineTotal.toFixed(2)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-md w-full ml-auto max-w-xs mr-0">
+                                    <span className="font-semibold text-muted-foreground">Subtotal:</span><span className="text-right">${selectedOrder.subtotal.toFixed(2)}</span>
+                                    <span className="font-semibold text-muted-foreground">Total Discount:</span><span className="text-right text-green-600">-${selectedOrder.totalDiscount.toFixed(2)}</span>
+                                    <span className="font-bold text-xl text-primary border-t pt-2 mt-1">Grand Total:</span><span className="text-right font-extrabold text-xl text-primary border-t pt-2 mt-1">${selectedOrder.grandTotal.toFixed(2)}</span>
                                 </div>
+
+                                {selectedOrder.notes && (
+                                    <div className="mt-6">
+                                        <h4 className="font-headline text-md text-primary mb-1">Notes:</h4>
+                                        <p className="bg-secondary/30 p-3 rounded-md text-sm text-muted-foreground whitespace-pre-wrap">{selectedOrder.notes}</p>
+                                    </div>
+                                )}
                                 </div>
-                                <DialogFooter className="pt-6 border-t mt-4">
-                                <Button type="button" variant="outline" onClick={handlePrintInvoice} className="font-body">Print</Button>
+                                <DialogFooter className="pt-6 border-t mt-6">
+                                <Button type="button" variant="outline" onClick={handlePrintInvoice} className="font-body">Print Invoice</Button>
                                 <DialogClose asChild><Button type="button" className="font-body">Close</Button></DialogClose>
                                 </DialogFooter>
                             </DialogContent>

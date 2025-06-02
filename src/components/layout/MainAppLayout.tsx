@@ -39,13 +39,15 @@ import {
   LogOut,
   Settings,
   Loader2,
+  ShoppingCart, // Added ShoppingCart
 } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/inventory', label: 'Inventory', icon: Archive },
   { href: '/inventory/add', label: 'Add Product', icon: PlusSquare },
-  { href: '/history', label: 'History', icon: History },
+  { href: '/orders/create', label: 'Create Order', icon: ShoppingCart }, // Added Create Order link
+  { href: '/history', label: 'Order History', icon: History }, // Label changed to Order History
   { href: '/low-stock', label: 'Low Stock', icon: AlertTriangle },
 ];
 
@@ -69,22 +71,26 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
   }, [isClientHydrated, authIsLoading, isAuthenticated, router]);
 
   let pageTitle = 'Threadcount Tracker';
-  const currentPageNavItem = navItems.find(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href) && item.href !== '/inventory/add'));
-  if (currentPageNavItem) {
-    pageTitle = currentPageNavItem.label;
-  } else if (pathname.startsWith('/inventory/edit')) {
+  // Check for exact matches or more specific parent routes first
+  if (pathname.startsWith('/inventory/edit')) {
     pageTitle = 'Edit Product';
   } else if (pathname === '/inventory/add') {
     pageTitle = 'Add Product';
+  } else if (pathname === '/orders/create') {
+    pageTitle = 'Create New Order';
+  } else {
+    const currentPageNavItem = navItems.find(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
+    if (currentPageNavItem) {
+      pageTitle = currentPageNavItem.label;
+    }
   }
+
 
   // Step 1: Handle pre-hydration state (server render and initial client render)
   if (!isClientHydrated) {
-    // Render a minimal, stable placeholder. No Loader2 here.
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        {/* You could put a non-SVG, simple text loader here if absolutely needed,
-            but an empty div is safest for avoiding hydration issues with SVGs. */}
+      <div className="flex items-center justify-center min-h-screen bg-background opacity-0" aria-hidden="true">
+        {/* Minimal, stable placeholder. Content hidden by opacity to prevent flash. */}
       </div>
     );
   }
@@ -122,7 +128,7 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
                   <SidebarMenuItem key={item.label}>
                     <Link href={item.href} passHref legacyBehavior>
                       <SidebarMenuButton
-                        isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
+                        isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href) && !(item.href === '/inventory' && pathname.startsWith('/inventory/add')))}
                         tooltip={item.label}
                         className="justify-start font-body text-sm"
                       >
