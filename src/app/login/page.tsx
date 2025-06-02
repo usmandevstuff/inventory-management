@@ -8,15 +8,26 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { Loader2, Package } from 'lucide-react';
+import { Loader2, Package, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
 
 export default function LoginPage() {
-  const { login, isLoading: authLoading } = useAuth();
+  const { login, isLoading: authLoading, sendPasswordResetEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (event: FormEvent) => {
@@ -31,7 +42,21 @@ export default function LoginPage() {
     }
     setIsSubmitting(true);
     await login(email, password); 
-    setIsSubmitting(false); // Reset submitting state after login attempt
+    setIsSubmitting(false);
+  };
+
+  const handlePasswordResetRequest = async () => {
+    if (!resetEmail) {
+      toast({
+        title: "Input Required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    await sendPasswordResetEmail(resetEmail);
+    setIsPasswordResetDialogOpen(false); // Close dialog after attempt
+    setResetEmail(''); // Clear the input
   };
 
   return (
@@ -80,6 +105,46 @@ export default function LoginPage() {
           </form>
         </CardContent>
         <CardFooter className="flex flex-col items-center space-y-2 pb-8">
+           <Dialog open={isPasswordResetDialogOpen} onOpenChange={setIsPasswordResetDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="link" className="p-0 text-sm text-muted-foreground hover:text-primary font-body">
+                Forgot Password?
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md font-body">
+              <DialogHeader>
+                <DialogTitle className="font-headline text-2xl">Reset Password</DialogTitle>
+                <DialogDescription className="font-body pt-1">
+                  Enter your email address and we&apos;ll send you a link to reset your password.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email Address</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" className="font-body">Cancel</Button>
+                </DialogClose>
+                <Button type="button" onClick={handlePasswordResetRequest} disabled={authLoading} className="font-body">
+                  {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Send Reset Link
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <p className="text-sm text-muted-foreground font-body">
             Don&apos;t have an account?{' '}
             <Button variant="link" asChild className="p-0 text-accent hover:text-accent/80 font-semibold">
