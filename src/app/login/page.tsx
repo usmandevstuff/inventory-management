@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { Loader2, Package } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function LoginPage() {
@@ -16,12 +17,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!email || !password) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSubmitting(true);
     await login(email, password); 
-    // setIsSubmitting(false); // login() handles redirection
+    setIsSubmitting(false); // Reset submitting state after login attempt
   };
 
   return (

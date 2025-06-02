@@ -9,26 +9,38 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { Loader2, Package } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function SignupPage() {
-  const { login, isLoading: authLoading } = useAuth(); // Using login for mock signup
+  const { signup, isLoading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const { toast } = useToast();
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      toast({
+        title: "Validation Error",
+        description: "Passwords do not match.",
+        variant: "destructive",
+      });
       return;
     }
-    setError('');
+    if (!email || !password) {
+       toast({
+        title: "Validation Error",
+        description: "Email and password are required.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSubmitting(true);
-    await login(email, password); 
-    // setIsSubmitting(false); 
+    await signup(email, password); 
+    setIsSubmitting(false);
   };
 
   return (
@@ -63,7 +75,7 @@ export default function SignupPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Minimum 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -82,7 +94,6 @@ export default function SignupPage() {
                 className="font-body"
               />
             </div>
-            {error && <p className="text-sm text-destructive font-body">{error}</p>}
             <Button type="submit" className="w-full font-headline text-base py-3 mt-2 bg-accent text-accent-foreground hover:bg-accent/90" disabled={isSubmitting || authLoading}>
               {isSubmitting || authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Sign Up
