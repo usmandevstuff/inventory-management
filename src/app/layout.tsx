@@ -3,6 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { StoreProvider } from '@/contexts/StoreContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { PageProgressBar } from '@/components/PageProgressBar';
+import { PageTransitionWrapper } from '@/components/layout/PageTransitionWrapper';
 
 export const metadata: Metadata = {
   title: 'Threadcount Tracker',
@@ -25,7 +27,10 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen flex flex-col">
         <AuthProvider>
           <StoreProvider>
-            {children}
+            <PageProgressBar />
+            <PageTransitionWrapper>
+              {children}
+            </PageTransitionWrapper>
             <Toaster />
           </StoreProvider>
         </AuthProvider>
