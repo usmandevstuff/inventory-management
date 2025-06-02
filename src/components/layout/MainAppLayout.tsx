@@ -41,7 +41,8 @@ import {
   Settings,
   Loader2,
   ShoppingCart,
-  UserCog, // Changed from Settings for sidebar
+  UserCog,
+  Repeat, // Added icon for All Transactions
 } from 'lucide-react';
 
 const navItems = [
@@ -50,8 +51,9 @@ const navItems = [
   { href: '/inventory/add', label: 'Add Product', icon: PlusSquare },
   { href: '/orders/create', label: 'Create Order', icon: ShoppingCart },
   { href: '/history', label: 'Order History', icon: History },
+  { href: '/transactions', label: 'All Transactions', icon: Repeat }, // New Transactions Page
   { href: '/low-stock', label: 'Low Stock', icon: AlertTriangle },
-  { href: '/settings', label: 'Account Settings', icon: UserCog }, // Added Settings
+  { href: '/settings', label: 'Account Settings', icon: UserCog },
 ];
 
 function MainAppLayout({ children }: { children: React.ReactNode }) {
@@ -76,23 +78,33 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
   let pageTitle = 'Threadcount Tracker'; // Default title
 
   const currentPageNavItem = navItems.find(item => {
-    if (item.href === '/dashboard') return pathname === item.href;
-    // For other items, check if pathname starts with item.href,
-    // but exclude more specific paths that might also start with it.
-    // e.g. /inventory should match, but /inventory/add should match "Add Product"
-    return pathname.startsWith(item.href) && 
-           !navItems.some(other => other.href !== item.href && pathname.startsWith(other.href) && other.href.length > item.href.length);
+    // Exact match for dashboard or if path starts with item.href
+    // Ensure more specific paths take precedence (e.g., /inventory/add over /inventory)
+    if (pathname === item.href) return true;
+    if (item.href === '/dashboard') return false; // Already handled by exact match
+
+    // Check if pathname starts with item.href
+    if (pathname.startsWith(item.href)) {
+      // Check if any other navItem is a more specific match
+      const isMoreSpecificMatch = navItems.some(otherItem => 
+        otherItem.href !== item.href && 
+        pathname.startsWith(otherItem.href) && 
+        otherItem.href.length > item.href.length
+      );
+      return !isMoreSpecificMatch;
+    }
+    return false;
   });
+
 
   if (currentPageNavItem) {
     pageTitle = currentPageNavItem.label;
   } else if (pathname.startsWith('/inventory/edit')) {
-    pageTitle = 'Edit Product'; // Specific case for dynamic route
+    pageTitle = 'Edit Product'; 
   }
   // Add other specific dynamic route titles if needed
 
   if (!isClientHydrated) {
-    // Render nothing or a very minimal, stable placeholder during server render & first client render pass
     return <div className="flex min-h-screen bg-background opacity-0" aria-hidden="true"></div>;
   }
 
