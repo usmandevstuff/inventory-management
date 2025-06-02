@@ -30,6 +30,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
+import { ThemeToggle } from './ThemeToggle'; // Added ThemeToggle import
 import { 
   LayoutDashboard, 
   Archive, 
@@ -39,15 +40,15 @@ import {
   LogOut,
   Settings,
   Loader2,
-  ShoppingCart, // Added ShoppingCart
+  ShoppingCart,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/inventory', label: 'Inventory', icon: Archive },
   { href: '/inventory/add', label: 'Add Product', icon: PlusSquare },
-  { href: '/orders/create', label: 'Create Order', icon: ShoppingCart }, // Added Create Order link
-  { href: '/history', label: 'Order History', icon: History }, // Label changed to Order History
+  { href: '/orders/create', label: 'Create Order', icon: ShoppingCart },
+  { href: '/history', label: 'Order History', icon: History },
   { href: '/low-stock', label: 'Low Stock', icon: AlertTriangle },
 ];
 
@@ -71,7 +72,6 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
   }, [isClientHydrated, authIsLoading, isAuthenticated, router]);
 
   let pageTitle = 'Threadcount Tracker';
-  // Check for exact matches or more specific parent routes first
   if (pathname.startsWith('/inventory/edit')) {
     pageTitle = 'Edit Product';
   } else if (pathname === '/inventory/add') {
@@ -85,17 +85,13 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
     }
   }
 
-
-  // Step 1: Handle pre-hydration state (server render and initial client render)
   if (!isClientHydrated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background opacity-0" aria-hidden="true">
-        {/* Minimal, stable placeholder. Content hidden by opacity to prevent flash. */}
       </div>
     );
   }
 
-  // Step 2: After hydration, handle auth loading
   if (authIsLoading) { 
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -104,7 +100,6 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Step 3: After hydration and auth loaded, handle not authenticated
   if (!isAuthenticated) { 
      return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -114,7 +109,6 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // Step 4: Authenticated and hydrated, render the main layout
   return (
       <div className="flex min-h-screen bg-background">
         <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-md">
@@ -155,28 +149,31 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
               <SidebarTrigger className="md:hidden" />
               <h1 className="font-headline text-xl text-primary">{pageTitle}</h1>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10 border-2 border-primary/50">
-                    <AvatarImage src="https://placehold.co/100x100.png" alt="User avatar" data-ai-hint="user avatar" />
-                    <AvatarFallback className="bg-primary text-primary-foreground">TT</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 font-body">
-                <DropdownMenuLabel className="font-headline">My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={logout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2"> {/* Wrapper for ThemeToggle and UserMenu */}
+              <ThemeToggle />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10 border-2 border-primary/50">
+                      <AvatarImage src="https://placehold.co/100x100.png" alt="User avatar" data-ai-hint="user avatar" />
+                      <AvatarFallback className="bg-primary text-primary-foreground">TT</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 font-body">
+                  <DropdownMenuLabel className="font-headline">My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </header>
           <main className="flex-1 overflow-y-auto p-6">
             {children}
