@@ -24,7 +24,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadcnCardDescription, CardFooter } from "@/components/ui/card";
 import { Loader2, ShoppingCart, PlusCircle, Trash2, Info } from "lucide-react";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 const orderItemSchema = z.object({
   productId: z.string().min(1, { message: "Product must be selected." }),
@@ -69,37 +69,40 @@ export function OrderForm() {
 
   const watchedItems = form.watch("items");
 
+  const calculateAndUpdateTotalsInternal = useCallback((currentItems: OrderFormValues['items']) => {
+    let subtotal = 0;
+    let totalDiscount = 0;
+    
+    currentItems.forEach(item => {
+      const itemUnitPrice = Number(item.unitPrice) || 0;
+      const itemQuantity = Number(item.quantity) || 0;
+      const itemDiscountPerUnit = Number(item.discount) || 0;
+
+      subtotal += itemUnitPrice * itemQuantity;
+      totalDiscount += itemDiscountPerUnit * itemQuantity;
+    });
+
+    const grandTotal = subtotal - totalDiscount;
+    setCalculatedTotals({ subtotal, totalDiscount, grandTotal });
+  }, [setCalculatedTotals]);
+
+  const debouncedCalculateAndUpdateTotals = useMemo(
+    () => _.debounce(calculateAndUpdateTotalsInternal, 300),
+    [calculateAndUpdateTotalsInternal]
+  );
+
   useEffect(() => {
-    const calculateAndUpdateTotals = (currentItems: OrderFormValues['items']) => {
-      let subtotal = 0;
-      let totalDiscount = 0;
-      
-      currentItems.forEach(item => {
-        const itemUnitPrice = Number(item.unitPrice) || 0;
-        const itemQuantity = Number(item.quantity) || 0;
-        const itemDiscountPerUnit = Number(item.discount) || 0;
-
-        subtotal += itemUnitPrice * itemQuantity;
-        totalDiscount += itemDiscountPerUnit * itemQuantity;
-      });
-
-      const grandTotal = subtotal - totalDiscount;
-      setCalculatedTotals({ subtotal, totalDiscount, grandTotal });
-    };
-
-    const debouncedCalculate = _.debounce(calculateAndUpdateTotals, 300);
-
     if (watchedItems && watchedItems.length > 0) {
-      debouncedCalculate(watchedItems);
+      debouncedCalculateAndUpdateTotals(watchedItems);
     } else {
       setCalculatedTotals({ subtotal: 0, totalDiscount: 0, grandTotal: 0 });
-      debouncedCalculate.cancel(); // Cancel any pending calculation if items are cleared
+      debouncedCalculateAndUpdateTotals.cancel();
     }
 
     return () => {
-      debouncedCalculate.cancel();
+      debouncedCalculateAndUpdateTotals.cancel();
     };
-  }, [watchedItems, setCalculatedTotals]);
+  }, [watchedItems, debouncedCalculateAndUpdateTotals]);
 
 
   const handleProductChange = (itemIndex: number, productId: string) => {
