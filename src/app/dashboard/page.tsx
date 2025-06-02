@@ -83,22 +83,38 @@ export default function DashboardPage() {
               <CardTitle className="font-headline text-xl sm:text-2xl text-primary">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button asChild variant="outline" className="font-body justify-start text-sm sm:text-base py-5 sm:py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
+              <Button 
+                asChild 
+                variant="outline" 
+                className="font-body justify-start text-left text-sm sm:text-base py-4 px-5 rounded-lg shadow-sm hover:shadow-lg hover:bg-primary/10 hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-300 ease-in-out flex items-center"
+              >
                 <Link href="/inventory/add">
                   <PlusSquare className="mr-3 h-5 w-5" /> Add New Product
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="font-body justify-start text-sm sm:text-base py-5 sm:py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
+              <Button 
+                asChild 
+                variant="outline" 
+                className="font-body justify-start text-left text-sm sm:text-base py-4 px-5 rounded-lg shadow-sm hover:shadow-lg hover:bg-primary/10 hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-300 ease-in-out flex items-center"
+              >
                 <Link href="/inventory">
                   <ListOrdered className="mr-3 h-5 w-5" /> View Full Inventory
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="font-body justify-start text-sm sm:text-base py-5 sm:py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
+              <Button 
+                asChild 
+                variant="outline" 
+                className="font-body justify-start text-left text-sm sm:text-base py-4 px-5 rounded-lg shadow-sm hover:shadow-lg hover:bg-primary/10 hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-300 ease-in-out flex items-center"
+              >
                 <Link href="/orders/create">
                   <ShoppingCart className="mr-3 h-5 w-5" /> Create New Order
                 </Link>
               </Button>
-               <Button asChild variant="outline" className="font-body justify-start text-sm sm:text-base py-5 sm:py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
+               <Button 
+                asChild 
+                variant="outline" 
+                className="font-body justify-start text-left text-sm sm:text-base py-4 px-5 rounded-lg shadow-sm hover:shadow-lg hover:bg-primary/10 hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-300 ease-in-out flex items-center"
+               >
                 <Link href="/history">
                   <History className="mr-3 h-5 w-5" /> Order History
                 </Link>
@@ -184,3 +200,4 @@ export default function DashboardPage() {
     </MainAppLayoutWrapper>
   );
 }
+
