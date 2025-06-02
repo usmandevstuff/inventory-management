@@ -111,7 +111,7 @@ export default function HistoryPage() {
     }
   };
 
-  if (isLoading && !isClient) { // Show loader only if not yet client-side hydrated and still loading
+  if (isLoading && !isClient) { 
     return <MainAppLayoutWrapper><div className="flex justify-center items-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div></MainAppLayoutWrapper>;
   }
 
@@ -119,7 +119,7 @@ export default function HistoryPage() {
   return (
     <MainAppLayoutWrapper>
       <div className="space-y-6">
-        <h1 className="font-headline text-4xl text-primary">Order History</h1>
+        <h1 className="font-headline text-3xl sm:text-4xl text-primary">Order History</h1>
         
         <Card className="shadow-xl rounded-lg">
           <CardHeader className="border-b p-4 md:p-6">
@@ -150,7 +150,7 @@ export default function HistoryPage() {
                     onSelect={setDateRange}
                     initialFocus
                     className="font-body"
-                    numberOfMonths={isClient && window.innerWidth < 768 ? 1 : 2} // Responsive number of months
+                    numberOfMonths={isClient && typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2} 
                   />
                   { (dateRange.from || dateRange.to) && 
                     <Button onClick={() => setDateRange({})} variant="ghost" className="w-full justify-start text-sm text-destructive hover:text-destructive font-body h-auto py-1.5 px-2">
@@ -207,7 +207,7 @@ export default function HistoryPage() {
                             <DialogContent className="sm:max-w-2xl font-body data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95" id="invoice-dialog-content">
                                 <div id="invoice-print-area">
                                 <DialogHeader className="mb-6 border-b pb-4">
-                                    <DialogTitle className="font-headline text-3xl text-primary">Invoice / Order Details</DialogTitle>
+                                    <DialogTitle className="font-headline text-2xl sm:text-3xl text-primary">Invoice / Order Details</DialogTitle>
                                     <div className="flex flex-col sm:flex-row justify-between text-sm text-muted-foreground gap-1 sm:gap-4">
                                         <span>Order ID: <span className="font-mono text-xs font-medium text-foreground">{selectedOrder.orderNumber}</span></span>
                                         <span>Date: <span className="font-medium text-foreground">{format(parseISO(selectedOrder.orderDate), 'PPP')}</span></span>
@@ -222,7 +222,7 @@ export default function HistoryPage() {
                                               <TableHead className="font-semibold whitespace-nowrap">Product</TableHead>
                                               <TableHead className="text-center font-semibold">Qty</TableHead>
                                               <TableHead className="text-right font-semibold whitespace-nowrap">Price/Unit</TableHead>
-                                              <TableHead className="text-right font-semibold whitespace-nowrap">Discount/Unit</TableHead>
+                                              <TableHead className="text-right font-semibold whitespace-nowrap hidden sm:table-cell">Discount/Unit</TableHead>
                                               <TableHead className="text-right font-semibold whitespace-nowrap">Final Price/Unit</TableHead>
                                               <TableHead className="text-right font-semibold whitespace-nowrap">Line Total</TableHead>
                                           </TableRow>
@@ -233,7 +233,7 @@ export default function HistoryPage() {
                                                   <TableCell>{item.productName}</TableCell>
                                                   <TableCell className="text-center">{item.quantity}</TableCell>
                                                   <TableCell className="text-right whitespace-nowrap">${item.unitPrice.toFixed(2)}</TableCell>
-                                                  <TableCell className="text-right text-green-600 whitespace-nowrap">${item.discount.toFixed(2)}</TableCell>
+                                                  <TableCell className="text-right text-green-600 whitespace-nowrap hidden sm:table-cell">${item.discount.toFixed(2)}</TableCell>
                                                   <TableCell className="text-right font-medium whitespace-nowrap">${item.finalUnitPrice.toFixed(2)}</TableCell>
                                                   <TableCell className="text-right font-bold whitespace-nowrap">${item.lineTotal.toFixed(2)}</TableCell>
                                               </TableRow>
@@ -242,10 +242,10 @@ export default function HistoryPage() {
                                   </Table>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-md w-full ml-auto max-w-xs mr-0">
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:text-md w-full ml-auto max-w-xs mr-0">
                                     <span className="font-semibold text-muted-foreground">Subtotal:</span><span className="text-right">${selectedOrder.subtotal.toFixed(2)}</span>
                                     <span className="font-semibold text-muted-foreground">Total Discount:</span><span className="text-right text-green-600">-${selectedOrder.totalDiscount.toFixed(2)}</span>
-                                    <span className="font-bold text-xl text-primary border-t pt-2 mt-1">Grand Total:</span><span className="text-right font-extrabold text-xl text-primary border-t pt-2 mt-1">${selectedOrder.grandTotal.toFixed(2)}</span>
+                                    <span className="font-bold text-lg sm:text-xl text-primary border-t pt-2 mt-1">Grand Total:</span><span className="text-right font-extrabold text-lg sm:text-xl text-primary border-t pt-2 mt-1">${selectedOrder.grandTotal.toFixed(2)}</span>
                                 </div>
 
                                 {selectedOrder.notes && (
@@ -255,9 +255,9 @@ export default function HistoryPage() {
                                     </div>
                                 )}
                                 </div>
-                                <DialogFooter className="pt-6 border-t mt-6">
-                                <Button type="button" variant="outline" onClick={handlePrintInvoice} className="font-body">Print Invoice</Button>
-                                <DialogClose asChild><Button type="button" className="font-body">Close</Button></DialogClose>
+                                <DialogFooter className="pt-6 border-t mt-6 flex-col sm:flex-row gap-2 sm:gap-0">
+                                <Button type="button" variant="outline" onClick={handlePrintInvoice} className="font-body w-full sm:w-auto">Print Invoice</Button>
+                                <DialogClose asChild><Button type="button" className="font-body w-full sm:w-auto">Close</Button></DialogClose>
                                 </DialogFooter>
                             </DialogContent>
                           )}

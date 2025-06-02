@@ -94,17 +94,17 @@ export default function TransactionsPage() {
       case 'sale': return 'destructive';
       case 'restock':
       case 'return':
-      case 'initial': return 'default'; // Consider a specific 'success' or 'positive' variant
+      case 'initial': return 'default'; 
       case 'adjustment': return 'secondary';
       default: return 'outline';
     }
   };
   
   const formatQuantityChange = (tx: Transaction) => {
-    if (tx.type === 'sale' && tx.quantityChange > 0) { // Sale should be negative
+    if (tx.type === 'sale' && tx.quantityChange > 0) { 
         return `-${tx.quantityChange}`;
     }
-    if ((tx.type === 'restock' || tx.type === 'return' || tx.type === 'initial') && tx.quantityChange < 0) { // These should be positive
+    if ((tx.type === 'restock' || tx.type === 'return' || tx.type === 'initial') && tx.quantityChange < 0) { 
         return `+${Math.abs(tx.quantityChange)}`;
     }
     return tx.quantityChange > 0 ? `+${tx.quantityChange}` : `${tx.quantityChange}`;
@@ -119,13 +119,13 @@ export default function TransactionsPage() {
     <MainAppLayoutWrapper>
       <div className="space-y-6">
         <div className="flex items-center gap-3 border-b pb-4">
-          <Repeat className="h-10 w-10 text-primary" />
-          <h1 className="font-headline text-4xl text-primary">All Transactions</h1>
+          <Repeat className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+          <h1 className="font-headline text-3xl sm:text-4xl text-primary">All Transactions</h1>
         </div>
         
         <Card className="shadow-xl rounded-lg">
           <CardHeader className="border-b p-4 md:p-6">
-             <CardDescription className="font-body text-md text-muted-foreground">
+             <CardDescription className="font-body text-sm sm:text-md text-muted-foreground">
                 A detailed log of all stock movements. Currently showing {filteredAndSortedTransactions.length} of {transactions.length} total transactions.
             </CardDescription>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end pt-4">
@@ -155,7 +155,7 @@ export default function TransactionsPage() {
                     onSelect={setDateRange}
                     initialFocus
                     className="font-body"
-                    numberOfMonths={isClient && window.innerWidth < 768 ? 1 : 2} // Responsive calendar
+                    numberOfMonths={isClient && typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2}
                   />
                    { (dateRange.from || dateRange.to) && 
                     <Button onClick={() => setDateRange({})} variant="ghost" className="w-full justify-start text-sm text-destructive hover:text-destructive font-body h-auto py-1.5 px-2">
@@ -179,7 +179,7 @@ export default function TransactionsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead onClick={() => handleSort('timestamp')} className="cursor-pointer hover:text-primary font-headline text-sm p-3 whitespace-nowrap">Date <SortIndicator column="timestamp"/></TableHead>
-                    <TableHead onClick={() => handleSort('productName')} className="cursor-pointer hover:text-primary font-headline text-sm p-3 whitespace-nowrap">Product Name <SortIndicator column="productName"/></TableHead>
+                    <TableHead onClick={() => handleSort('productName')} className="cursor-pointer hover:text-primary font-headline text-sm p-3 whitespace-nowrap">Product <SortIndicator column="productName"/></TableHead>
                     <TableHead onClick={() => handleSort('type')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Type <SortIndicator column="type"/></TableHead>
                     <TableHead onClick={() => handleSort('quantityChange')} className="text-center cursor-pointer hover:text-primary font-headline text-sm p-3">Change <SortIndicator column="quantityChange"/></TableHead>
                     <TableHead className="text-center font-headline text-sm p-3 hidden md:table-cell">Stock Before</TableHead>
@@ -190,8 +190,8 @@ export default function TransactionsPage() {
                 <TableBody>
                   {filteredAndSortedTransactions.map((tx) => (
                     <TableRow key={tx.id} className="hover:bg-secondary/50 transition-colors font-body">
-                      <TableCell className="p-3 whitespace-nowrap">{format(parseISO(tx.timestamp), 'PP pp')}</TableCell>
-                      <TableCell className="font-medium p-3 whitespace-nowrap">{tx.productName || 'N/A'}</TableCell>
+                      <TableCell className="p-3 whitespace-nowrap text-xs sm:text-sm">{format(parseISO(tx.timestamp), 'PP pp')}</TableCell>
+                      <TableCell className="font-medium p-3 whitespace-nowrap text-xs sm:text-sm">{tx.productName || 'N/A'}</TableCell>
                       <TableCell className="p-3">
                         <Badge 
                           variant={getTransactionTypeBadgeVariant(tx.type)}
@@ -200,12 +200,12 @@ export default function TransactionsPage() {
                           {tx.type}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`text-center p-3 font-medium ${tx.quantityChange < 0 ? 'text-destructive' : 'text-green-600'}`}>
+                      <TableCell className={`text-center p-3 font-medium text-xs sm:text-sm ${tx.quantityChange < 0 ? 'text-destructive' : 'text-green-600'}`}>
                         {formatQuantityChange(tx)}
                       </TableCell>
-                      <TableCell className="text-center p-3 hidden md:table-cell">{tx.stockBefore}</TableCell>
-                      <TableCell className="text-center p-3 font-bold">{tx.stockAfter}</TableCell>
-                      <TableCell className="p-3 text-xs text-muted-foreground max-w-[150px] truncate hidden lg:table-cell" title={tx.notes}>{tx.notes || '-'}</TableCell>
+                      <TableCell className="text-center p-3 hidden md:table-cell text-xs sm:text-sm">{tx.stockBefore}</TableCell>
+                      <TableCell className="text-center p-3 font-bold text-xs sm:text-sm">{tx.stockAfter}</TableCell>
+                      <TableCell className="p-3 text-xs text-muted-foreground max-w-[100px] sm:max-w-[150px] truncate hidden lg:table-cell" title={tx.notes}>{tx.notes || '-'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useEffect } from 'react'; // Added useState, useEffect
+import { useState, useEffect } from 'react'; 
 import MainAppLayoutWrapper from '@/components/layout/MainAppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/contexts/StoreContext';
 import Link from 'next/link';
-import { Archive, AlertTriangle, PlusSquare, ListOrdered, BarChart3, Loader2, TrendingUp, History } from 'lucide-react'; // Added History
+import { Archive, AlertTriangle, PlusSquare, ListOrdered, BarChart3, Loader2, TrendingUp, History, ShoppingCart } from 'lucide-react'; 
 import Image from 'next/image';
 
 export default function DashboardPage() {
@@ -15,12 +15,10 @@ export default function DashboardPage() {
   const [isClientHydrated, setIsClientHydrated] = useState(false);
 
   useEffect(() => {
-    setIsClientHydrated(true); // Runs only on client, after initial mount
+    setIsClientHydrated(true); 
   }, []);
 
   if (!isClientHydrated || storeIsLoading) {
-    // MainAppLayoutWrapper handles its own auth loading state.
-    // This loader is for when DashboardPage's specific data is loading.
     return (
       <MainAppLayoutWrapper>
         <div className="flex justify-center items-center h-full">
@@ -38,9 +36,9 @@ export default function DashboardPage() {
   return (
     <MainAppLayoutWrapper>
       <div className="space-y-8">
-        <h1 className="font-headline text-4xl text-primary">Dashboard Overview</h1>
+        <h1 className="font-headline text-3xl sm:text-4xl text-primary">Dashboard Overview</h1>
         
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out rounded-lg border-l-4 border-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium font-body text-muted-foreground">Total Products</CardTitle>
@@ -82,35 +80,36 @@ export default function DashboardPage() {
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="shadow-lg rounded-lg">
             <CardHeader>
-              <CardTitle className="font-headline text-2xl text-primary">Quick Actions</CardTitle>
+              <CardTitle className="font-headline text-xl sm:text-2xl text-primary">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
+              <Button asChild variant="outline" className="font-body justify-start text-sm sm:text-base py-5 sm:py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
                 <Link href="/inventory/add">
                   <PlusSquare className="mr-3 h-5 w-5" /> Add New Product
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
+              <Button asChild variant="outline" className="font-body justify-start text-sm sm:text-base py-5 sm:py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
                 <Link href="/inventory">
                   <ListOrdered className="mr-3 h-5 w-5" /> View Full Inventory
                 </Link>
               </Button>
-               <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
-                <Link href="/transactions">
-                  <History className="mr-3 h-5 w-5" /> Transaction History
+              <Button asChild variant="outline" className="font-body justify-start text-sm sm:text-base py-5 sm:py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
+                <Link href="/orders/create">
+                  <ShoppingCart className="mr-3 h-5 w-5" /> Create New Order
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-destructive/10 hover:border-destructive hover:text-destructive rounded-md transition-all duration-200 ease-in-out">
-                <Link href="/low-stock">
-                  <AlertTriangle className="mr-3 h-5 w-5" /> Low Stock Alerts
+               <Button asChild variant="outline" className="font-body justify-start text-sm sm:text-base py-5 sm:py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
+                <Link href="/history">
+                  <History className="mr-3 h-5 w-5" /> Order History
                 </Link>
               </Button>
+              
             </CardContent>
           </Card>
 
           <Card className="shadow-lg rounded-lg">
             <CardHeader>
-              <CardTitle className="font-headline text-2xl text-primary">Recent Activity</CardTitle>
+              <CardTitle className="font-headline text-xl sm:text-2xl text-primary">Recent Activity</CardTitle>
               <CardDescription className="font-body">Last 5 transactions.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -131,7 +130,7 @@ export default function DashboardPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted-foreground font-body">No recent transactions.</p>
+                <p className="text-muted-foreground font-body text-center py-4">No recent transactions.</p>
               )}
             </CardContent>
           </Card>
@@ -140,7 +139,7 @@ export default function DashboardPage() {
         {lowStockProducts.length > 0 && (
           <Card className="shadow-lg rounded-lg border-t-4 border-destructive">
             <CardHeader>
-              <CardTitle className="font-headline text-2xl text-destructive flex items-center">
+              <CardTitle className="font-headline text-xl sm:text-2xl text-destructive flex items-center">
                 <AlertTriangle className="mr-2 h-6 w-6" /> Urgent: Low Stock Items
               </CardTitle>
               <CardDescription className="font-body">These items require your immediate attention for restocking.</CardDescription>
@@ -149,9 +148,9 @@ export default function DashboardPage() {
               {lowStockProducts.slice(0,4).map(product => ( 
                 <Link href={`/inventory/edit/${product.id}`} key={product.id} className="block group">
                   <Card className="overflow-hidden h-full flex flex-col rounded-lg shadow-md group-hover:shadow-xl transition-shadow duration-300 ease-in-out">
-                    <div className="relative w-full h-40">
+                    <div className="relative w-full aspect-[4/3]"> {/* Changed to aspect ratio */}
                       <Image 
-                        src={product.imageUrl || "https://placehold.co/300x200.png"} 
+                        src={product.imageUrl || "https://placehold.co/400x300.png"} 
                         alt={product.name} 
                         fill={true}
                         sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"

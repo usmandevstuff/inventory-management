@@ -52,7 +52,7 @@ export function OrderForm() {
       items: [{ productId: "", productName: "", quantity: 1, unitPrice: 0, discount: 0 }],
       notes: "",
     },
-    mode: "onChange", // Ensures form.watch updates on every change
+    mode: "onChange", 
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -62,7 +62,6 @@ export function OrderForm() {
 
   const watchedItems = form.watch("items");
 
-  // Calculate totals directly in the render cycle
   let subtotal = 0;
   let totalDiscount = 0;
 
@@ -84,7 +83,6 @@ export function OrderForm() {
       form.setValue(`items.${itemIndex}.productName`, product.name, { shouldValidate: true });
       form.setValue(`items.${itemIndex}.unitPrice`, product.price, { shouldValidate: true });
       form.setValue(`items.${itemIndex}.discount`, 0, { shouldValidate: true });
-      // Trigger validation for dependent fields if necessary
       form.trigger(`items.${itemIndex}.quantity`);
     }
   };
@@ -108,9 +106,9 @@ export function OrderForm() {
       addOrder({
         items: orderItems,
         notes: data.notes,
-        subtotal: subtotal, // Use directly calculated subtotal
-        totalDiscount: totalDiscount, // Use directly calculated totalDiscount
-        grandTotal: grandTotal, // Use directly calculated grandTotal
+        subtotal: subtotal, 
+        totalDiscount: totalDiscount, 
+        grandTotal: grandTotal, 
       });
 
       toast({ title: "Success", description: "Order created successfully." });
@@ -125,7 +123,7 @@ export function OrderForm() {
     }
   }
   
-  if (storeIsLoading && !products.length) { // Added check for products.length to avoid flash if store is loading but products are already there
+  if (storeIsLoading && !products.length) {
     return <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
@@ -142,7 +140,7 @@ export function OrderForm() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="space-y-6">
               {fields.map((field, index) => {
-                const currentItem = watchedItems[index] || {}; // get latest data
+                const currentItem = watchedItems[index] || {};
                 const product = currentItem.productId ? getProductById(currentItem.productId) : null;
                 const itemUnitPrice = Number(currentItem.unitPrice) || 0;
                 const itemQuantity = Number(currentItem.quantity) || 0;
@@ -153,12 +151,13 @@ export function OrderForm() {
 
                 return (
                   <Card key={field.id} className="p-4 bg-secondary/30 border-primary/20 rounded-md">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                    <div className="flex flex-col gap-4">
+                      {/* Product Selection */}
                       <FormField
                         control={form.control}
                         name={`items.${index}.productId`}
                         render={({ field: controllerField }) => (
-                          <FormItem className="md:col-span-3">
+                          <FormItem>
                             <FormLabel className="font-headline text-sm">Product</FormLabel>
                             <Select 
                               onValueChange={(value) => {
@@ -184,58 +183,65 @@ export function OrderForm() {
                           </FormItem>
                         )}
                       />
-                       <FormField
-                        control={form.control}
-                        name={`items.${index}.quantity`}
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel className="font-headline text-sm">Quantity</FormLabel>
-                            <FormControl>
-                              <Input type="number" placeholder="1" {...field} className="font-body" min="1" max={product?.stock} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.unitPrice`}
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel className="font-headline text-sm">Unit Price ($)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="0.00" {...field} className="font-body" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.discount`}
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel className="font-headline text-sm">Discount/Unit ($)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="0.00" {...field} className="font-body" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="md:col-span-2 space-y-1 pt-1">
-                        <FormLabel className="font-headline text-sm text-muted-foreground">Line Total</FormLabel>
-                        <p className="font-body text-lg font-semibold text-foreground">
-                          ${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                         <p className="font-body text-xs text-muted-foreground">
-                          Final: ${finalUnitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/unit
-                        </p>
+                      
+                      {/* Quantity, Unit Price, Discount in a responsive grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.quantity`}
+                          render={({ field: formField }) => (
+                            <FormItem>
+                              <FormLabel className="font-headline text-sm">Quantity</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="1" {...formField} className="font-body" min="1" max={product?.stock} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.unitPrice`}
+                          render={({ field: formField }) => (
+                            <FormItem>
+                              <FormLabel className="font-headline text-sm">Unit Price ($)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.01" placeholder="0.00" {...formField} className="font-body" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.discount`}
+                          render={({ field: formField }) => (
+                            <FormItem>
+                              <FormLabel className="font-headline text-sm">Discount/Unit ($)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.01" placeholder="0.00" {...formField} className="font-body" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
-                      <div className="md:col-span-1 flex items-end justify-end">
+
+                      {/* Line Total and Remove button */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-2">
+                        <div className="space-y-1 text-sm sm:text-base">
+                          <FormLabel className="font-headline text-xs sm:text-sm text-muted-foreground">Line Total</FormLabel>
+                          <p className="font-body font-semibold text-foreground">
+                            ${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                          <p className="font-body text-xs text-muted-foreground">
+                            (Final: ${finalUnitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/unit)
+                          </p>
+                        </div>
                         {fields.length > 1 && (
-                          <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:text-destructive/80 h-9 w-9 mt-3 md:mt-0">
+                          <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:text-destructive/80 h-9 w-9 mt-2 sm:mt-0 self-end sm:self-center">
                             <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Remove item</span>
                           </Button>
                         )}
                       </div>
@@ -287,15 +293,14 @@ export function OrderForm() {
                 </CardContent>
             </Card>
 
-
-            <CardFooter className="flex justify-end space-x-4 pt-8 border-t mt-8 px-0 pb-0">
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting} className="font-body text-base py-2 px-6">
+            <CardFooter className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 pt-8 border-t mt-8 px-0 pb-0">
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting} className="font-body text-base py-2 px-6 w-full sm:w-auto">
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 disabled={isSubmitting || storeIsLoading || form.formState.isSubmitting || !form.formState.isValid || watchedItems.some(item => (getProductById(item.productId)?.stock ?? 0) < item.quantity)}
-                className="font-body bg-accent text-accent-foreground hover:bg-accent/90 text-base py-2 px-6"
+                className="font-body bg-accent text-accent-foreground hover:bg-accent/90 text-base py-2 px-6 w-full sm:w-auto"
               >
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Create Order
@@ -307,5 +312,3 @@ export function OrderForm() {
     </Card>
   );
 }
-
-    
