@@ -96,7 +96,7 @@ export default function DashboardPage() {
                 </Link>
               </Button>
                <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
-                <Link href="/history">
+                <Link href="/transactions">
                   <History className="mr-3 h-5 w-5" /> Transaction History
                 </Link>
               </Button>
