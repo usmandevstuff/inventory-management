@@ -124,7 +124,7 @@ export default function TransactionsPage() {
         </div>
         
         <Card className="shadow-xl rounded-lg">
-          <CardHeader className="border-b">
+          <CardHeader className="border-b p-4 md:p-6">
              <CardDescription className="font-body text-md text-muted-foreground">
                 A detailed log of all stock movements. Currently showing {filteredAndSortedTransactions.length} of {transactions.length} total transactions.
             </CardDescription>
@@ -148,14 +148,14 @@ export default function TransactionsPage() {
                     ) : "Filter by Date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0" align="end">
                   <Calendar
                     mode="range"
                     selected={dateRange}
                     onSelect={setDateRange}
                     initialFocus
                     className="font-body"
-                    numberOfMonths={2}
+                    numberOfMonths={isClient && window.innerWidth < 768 ? 1 : 2} // Responsive calendar
                   />
                    { (dateRange.from || dateRange.to) && 
                     <Button onClick={() => setDateRange({})} variant="ghost" className="w-full justify-start text-sm text-destructive hover:text-destructive font-body h-auto py-1.5 px-2">
@@ -174,24 +174,24 @@ export default function TransactionsPage() {
                 <p>{searchTerm || dateRange.from || dateRange.to ? "Try adjusting your search or date filters." : "No transactions have been recorded yet."}</p>
               </div>
             ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
+            <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead onClick={() => handleSort('timestamp')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Date <SortIndicator column="timestamp"/></TableHead>
-                    <TableHead onClick={() => handleSort('productName')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Product Name <SortIndicator column="productName"/></TableHead>
+                    <TableHead onClick={() => handleSort('timestamp')} className="cursor-pointer hover:text-primary font-headline text-sm p-3 whitespace-nowrap">Date <SortIndicator column="timestamp"/></TableHead>
+                    <TableHead onClick={() => handleSort('productName')} className="cursor-pointer hover:text-primary font-headline text-sm p-3 whitespace-nowrap">Product Name <SortIndicator column="productName"/></TableHead>
                     <TableHead onClick={() => handleSort('type')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Type <SortIndicator column="type"/></TableHead>
                     <TableHead onClick={() => handleSort('quantityChange')} className="text-center cursor-pointer hover:text-primary font-headline text-sm p-3">Change <SortIndicator column="quantityChange"/></TableHead>
-                    <TableHead className="text-center font-headline text-sm p-3">Stock Before</TableHead>
+                    <TableHead className="text-center font-headline text-sm p-3 hidden md:table-cell">Stock Before</TableHead>
                     <TableHead onClick={() => handleSort('stockAfter')} className="text-center cursor-pointer hover:text-primary font-headline text-sm p-3">Stock After <SortIndicator column="stockAfter"/></TableHead>
-                    <TableHead className="font-headline text-sm p-3">Notes</TableHead>
+                    <TableHead className="font-headline text-sm p-3 hidden lg:table-cell">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredAndSortedTransactions.map((tx) => (
                     <TableRow key={tx.id} className="hover:bg-secondary/50 transition-colors font-body">
                       <TableCell className="p-3 whitespace-nowrap">{format(parseISO(tx.timestamp), 'PP pp')}</TableCell>
-                      <TableCell className="font-medium p-3">{tx.productName || 'N/A'}</TableCell>
+                      <TableCell className="font-medium p-3 whitespace-nowrap">{tx.productName || 'N/A'}</TableCell>
                       <TableCell className="p-3">
                         <Badge 
                           variant={getTransactionTypeBadgeVariant(tx.type)}
@@ -203,9 +203,9 @@ export default function TransactionsPage() {
                       <TableCell className={`text-center p-3 font-medium ${tx.quantityChange < 0 ? 'text-destructive' : 'text-green-600'}`}>
                         {formatQuantityChange(tx)}
                       </TableCell>
-                      <TableCell className="text-center p-3">{tx.stockBefore}</TableCell>
+                      <TableCell className="text-center p-3 hidden md:table-cell">{tx.stockBefore}</TableCell>
                       <TableCell className="text-center p-3 font-bold">{tx.stockAfter}</TableCell>
-                      <TableCell className="p-3 text-xs text-muted-foreground max-w-xs truncate" title={tx.notes}>{tx.notes || '-'}</TableCell>
+                      <TableCell className="p-3 text-xs text-muted-foreground max-w-[150px] truncate hidden lg:table-cell" title={tx.notes}>{tx.notes || '-'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

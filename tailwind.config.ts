@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Alegreya', 'serif'],
-        headline: ['Belleza', 'sans-serif'],
+        body: ['Lora', 'serif'], // Updated to Lora
+        headline: ['Raleway', 'sans-serif'], // Updated to Raleway
         code: ['monospace', 'monospace'],
       },
       colors: {

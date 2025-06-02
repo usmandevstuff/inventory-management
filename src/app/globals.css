@@ -51,7 +51,6 @@
   }
 
   .dark {
-    /* Keeping default dark theme, can be customized later if needed */
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
     --card: 0 0% 3.9%;
@@ -59,7 +58,7 @@
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
     --primary: 176 25% 54%; /* Muted Teal */
-    --primary-foreground: 0 0% 10%; /* Dark text on Teal for dark mode might be better */
+    --primary-foreground: 0 0% 98%; /* Off-white text on Teal for dark mode - Corrected for contrast */
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;

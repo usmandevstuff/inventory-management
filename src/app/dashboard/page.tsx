@@ -59,7 +59,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold font-headline text-destructive">{lowStockProducts.length}</div>
-              <Link href="/low-stock" className="text-xs text-muted-foreground hover:text-primary font-body">
+              <Link href="/low-stock" className="text-xs text-muted-foreground hover:text-primary font-body transition-colors duration-200">
                 View items needing reorder
               </Link>
             </CardContent>
@@ -85,22 +85,22 @@ export default function DashboardPage() {
               <CardTitle className="font-headline text-2xl text-primary">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200">
+              <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
                 <Link href="/inventory/add">
                   <PlusSquare className="mr-3 h-5 w-5" /> Add New Product
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200">
+              <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
                 <Link href="/inventory">
                   <ListOrdered className="mr-3 h-5 w-5" /> View Full Inventory
                 </Link>
               </Button>
-               <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200">
+               <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-primary/10 hover:border-primary hover:text-primary rounded-md transition-all duration-200 ease-in-out">
                 <Link href="/history">
                   <History className="mr-3 h-5 w-5" /> Transaction History
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-destructive/10 hover:border-destructive hover:text-destructive rounded-md transition-all duration-200">
+              <Button asChild variant="outline" className="font-body justify-start text-base py-6 hover:bg-destructive/10 hover:border-destructive hover:text-destructive rounded-md transition-all duration-200 ease-in-out">
                 <Link href="/low-stock">
                   <AlertTriangle className="mr-3 h-5 w-5" /> Low Stock Alerts
                 </Link>
@@ -117,7 +117,7 @@ export default function DashboardPage() {
               {recentTransactions.length > 0 ? (
                 <ul className="space-y-3">
                   {recentTransactions.map(tx => (
-                    <li key={tx.id} className="flex items-center justify-between p-3 bg-secondary/50 hover:bg-secondary/70 rounded-md font-body text-sm transition-colors duration-200">
+                    <li key={tx.id} className="flex items-center justify-between p-3 bg-secondary/50 hover:bg-secondary/70 rounded-md font-body text-sm transition-colors duration-200 ease-in-out">
                       <div>
                         <span className={`font-semibold ${tx.quantityChange < 0 ? 'text-destructive' : 'text-green-600'}`}>
                           {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}:
@@ -148,20 +148,20 @@ export default function DashboardPage() {
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {lowStockProducts.slice(0,4).map(product => ( 
                 <Link href={`/inventory/edit/${product.id}`} key={product.id} className="block group">
-                  <Card className="overflow-hidden h-full flex flex-col rounded-lg shadow-md group-hover:shadow-xl transition-shadow duration-300">
+                  <Card className="overflow-hidden h-full flex flex-col rounded-lg shadow-md group-hover:shadow-xl transition-shadow duration-300 ease-in-out">
                     <div className="relative w-full h-40">
                       <Image 
                         src={product.imageUrl || "https://placehold.co/300x200.png"} 
                         alt={product.name} 
                         fill={true}
-                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
+                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                         style={{objectFit:"cover"}}
-                        className="group-hover:scale-105 transition-transform duration-300"
+                        className="group-hover:scale-105 transition-transform duration-300 ease-in-out"
                         data-ai-hint={product.dataAiHint || "clothing item"}
                       />
                     </div>
                     <CardHeader className="p-3 flex-grow">
-                      <CardTitle className="text-base font-headline truncate group-hover:text-primary transition-colors duration-200">{product.name}</CardTitle>
+                      <CardTitle className="text-base font-headline truncate group-hover:text-primary transition-colors duration-200 ease-in-out">{product.name}</CardTitle>
                       <CardDescription className="text-xs font-body">Current Stock: <span className="font-bold text-destructive">{product.stock}</span> (Threshold: {product.lowStockThreshold})</CardDescription>
                     </CardHeader>
                     <CardContent className="p-3 pt-0">
@@ -173,7 +173,7 @@ export default function DashboardPage() {
             </CardContent>
              {lowStockProducts.length > 4 && (
                 <CardContent className="text-center pt-4">
-                    <Button asChild variant="link" className="text-primary hover:text-accent font-body">
+                    <Button asChild variant="link" className="text-primary hover:text-accent font-body transition-colors duration-200 ease-in-out">
                         <Link href="/low-stock">View all {lowStockProducts.length} low stock items <TrendingUp className="ml-2 h-4 w-4" /></Link>
                     </Button>
                 </CardContent>
