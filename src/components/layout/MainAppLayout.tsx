@@ -50,7 +50,7 @@ const navItems = [
   { href: '/low-stock', label: 'Low Stock', icon: AlertTriangle },
 ];
 
-export default function MainAppLayout({ children }: { children: React.ReactNode }) {
+function MainAppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
