@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react'; // Added useState
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -40,7 +40,6 @@ import {
   Settings,
   Loader2,
 } from 'lucide-react';
-// Removed Skeleton import as it's not used
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -60,7 +59,7 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
   const [isClientHydrated, setIsClientHydrated] = useState(false);
 
   useEffect(() => {
-    setIsClientHydrated(true); // Runs only on client, after initial mount
+    setIsClientHydrated(true); 
   }, []);
 
   useEffect(() => {
@@ -69,7 +68,6 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [isClientHydrated, authIsLoading, isAuthenticated, router]);
 
-  // Determine pageTitle based on pathname. This is safe as pathname is available on server and client.
   let pageTitle = 'Threadcount Tracker';
   const currentPageNavItem = navItems.find(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href) && item.href !== '/inventory/add'));
   if (currentPageNavItem) {
@@ -80,8 +78,19 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
     pageTitle = 'Add Product';
   }
 
+  // Step 1: Handle pre-hydration state (server render and initial client render)
+  if (!isClientHydrated) {
+    // Render a minimal, stable placeholder. No Loader2 here.
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        {/* You could put a non-SVG, simple text loader here if absolutely needed,
+            but an empty div is safest for avoiding hydration issues with SVGs. */}
+      </div>
+    );
+  }
 
-  if (!isClientHydrated || authIsLoading) { 
+  // Step 2: After hydration, handle auth loading
+  if (authIsLoading) { 
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
          <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -89,6 +98,7 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Step 3: After hydration and auth loaded, handle not authenticated
   if (!isAuthenticated) { 
      return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -98,6 +108,7 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
+  // Step 4: Authenticated and hydrated, render the main layout
   return (
       <div className="flex min-h-screen bg-background">
         <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-md">
