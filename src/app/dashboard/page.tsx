@@ -1,19 +1,33 @@
 
 "use client";
 
+import { useState, useEffect } from 'react'; // Added useState, useEffect
 import MainAppLayoutWrapper from '@/components/layout/MainAppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/contexts/StoreContext';
 import Link from 'next/link';
-import { Archive, AlertTriangle, PlusSquare, ListOrdered, BarChart3, Loader2, TrendingUp } from 'lucide-react';
+import { Archive, AlertTriangle, PlusSquare, ListOrdered, BarChart3, Loader2, TrendingUp, History } from 'lucide-react'; // Added History
 import Image from 'next/image';
 
 export default function DashboardPage() {
-  const { products, transactions, isLoading } = useStore();
+  const { products, transactions, isLoading: storeIsLoading } = useStore();
+  const [isClientHydrated, setIsClientHydrated] = useState(false);
 
-  if (isLoading) {
-    return <MainAppLayoutWrapper><div className="flex justify-center items-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div></MainAppLayoutWrapper>;
+  useEffect(() => {
+    setIsClientHydrated(true); // Runs only on client, after initial mount
+  }, []);
+
+  if (!isClientHydrated || storeIsLoading) {
+    // MainAppLayoutWrapper handles its own auth loading state.
+    // This loader is for when DashboardPage's specific data is loading.
+    return (
+      <MainAppLayoutWrapper>
+        <div className="flex justify-center items-center h-full">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      </MainAppLayoutWrapper>
+    );
   }
 
   const totalProducts = products.length;

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react'; // Added useState
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -40,7 +40,7 @@ import {
   Settings,
   Loader2,
 } from 'lucide-react';
-import { Skeleton } from '../ui/skeleton';
+// Removed Skeleton import as it's not used
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -51,19 +51,37 @@ const navItems = [
 ];
 
 function MainAppLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, logout } = useAuth();
+  const { isAuthenticated, isLoading: authIsLoading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const sidebar = useSidebar(); 
-  const isSidebarOpen = sidebar ? sidebar.open : true; // Default to true if context not ready
+  const isSidebarOpen = sidebar ? sidebar.open : true;
+
+  const [isClientHydrated, setIsClientHydrated] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    setIsClientHydrated(true); // Runs only on client, after initial mount
+  }, []);
+
+  useEffect(() => {
+    if (isClientHydrated && !authIsLoading && !isAuthenticated) {
       router.replace('/login');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isClientHydrated, authIsLoading, isAuthenticated, router]);
 
-  if (isLoading) { // Auth loading state
+  // Determine pageTitle based on pathname. This is safe as pathname is available on server and client.
+  let pageTitle = 'Threadcount Tracker';
+  const currentPageNavItem = navItems.find(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href) && item.href !== '/inventory/add'));
+  if (currentPageNavItem) {
+    pageTitle = currentPageNavItem.label;
+  } else if (pathname.startsWith('/inventory/edit')) {
+    pageTitle = 'Edit Product';
+  } else if (pathname === '/inventory/add') {
+    pageTitle = 'Add Product';
+  }
+
+
+  if (!isClientHydrated || authIsLoading) { 
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
          <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -71,7 +89,7 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) { // Should be redirected by useEffect, but as a safeguard
+  if (!isAuthenticated) { 
      return (
       <div className="flex items-center justify-center min-h-screen bg-background">
          <p className="font-body">Redirecting to login...</p>
@@ -80,17 +98,6 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
-  const currentPage = navItems.find(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href) && item.href !== '/inventory/add'));
-  let pageTitle = 'Threadcount Tracker';
-  if (currentPage) {
-    pageTitle = currentPage.label;
-  } else if (pathname.startsWith('/inventory/edit')) {
-    pageTitle = 'Edit Product';
-  } else if (pathname === '/inventory/add') {
-    pageTitle = 'Add Product'; // Handled by navItems, but explicit check is fine
-  }
-
-
   return (
       <div className="flex min-h-screen bg-background">
         <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-md">
@@ -128,7 +135,7 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
         <SidebarInset className="flex flex-col flex-1">
           <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/90 backdrop-blur-sm px-6 justify-between shadow-sm">
             <div className="flex items-center gap-2">
-              <SidebarTrigger className="md:hidden" /> {/* Mobile trigger, hidden on desktop */}
+              <SidebarTrigger className="md:hidden" />
               <h1 className="font-headline text-xl text-primary">{pageTitle}</h1>
             </div>
             <DropdownMenu>
@@ -162,7 +169,6 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Wrap MainAppLayout with SidebarProvider to ensure useSidebar hook works
 export default function MainAppLayoutWrapper(props: { children: React.ReactNode }) {
   return (
     <SidebarProvider defaultOpen={true}>
@@ -170,4 +176,3 @@ export default function MainAppLayoutWrapper(props: { children: React.ReactNode 
     </SidebarProvider>
   );
 }
-
