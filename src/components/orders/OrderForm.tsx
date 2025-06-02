@@ -3,7 +3,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
-import *_ from "lodash"; // For _.debounce
+import * as _ from "lodash"; // For _.debounce
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
