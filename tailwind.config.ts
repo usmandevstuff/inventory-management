@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -17,8 +18,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Lora', 'serif'], // Updated to Lora
-        headline: ['Raleway', 'sans-serif'], // Updated to Raleway
+        body: ['Poppins', 'sans-serif'], // Updated to Poppins
+        headline: ['Raleway', 'sans-serif'],
         code: ['monospace', 'monospace'],
       },
       colors: {
