@@ -32,9 +32,6 @@ const orderItemSchema = z.object({
   quantity: z.coerce.number().min(1, { message: "Quantity must be at least 1." }),
   unitPrice: z.coerce.number().min(0, { message: "Unit price cannot be negative." }),
   discount: z.coerce.number().min(0, { message: "Discount cannot be negative." }).optional().default(0),
-  // Calculated fields, not directly in form schema but derived
-  // finalUnitPrice: z.number(), 
-  // lineTotal: z.number(),
 });
 
 const orderFormSchema = z.object({
@@ -65,35 +62,44 @@ export function OrderForm() {
     mode: "onChange",
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items",
   });
 
   const watchedItems = form.watch("items");
 
-  const calculateAllTotals = useCallback(() => {
-    let subtotal = 0;
-    let totalDiscount = 0;
-    
-    watchedItems.forEach(item => {
-      const itemUnitPrice = Number(item.unitPrice) || 0;
-      const itemQuantity = Number(item.quantity) || 0;
-      const itemDiscountPerUnit = Number(item.discount) || 0;
-
-      subtotal += itemUnitPrice * itemQuantity;
-      totalDiscount += itemDiscountPerUnit * itemQuantity;
-    });
-
-    const grandTotal = subtotal - totalDiscount;
-    setCalculatedTotals({ subtotal, totalDiscount, grandTotal });
-  }, [watchedItems]);
-
   useEffect(() => {
-    const debouncedCalculate = _.debounce(calculateAllTotals, 300);
-    debouncedCalculate();
-    return () => debouncedCalculate.cancel();
-  }, [watchedItems, calculateAllTotals]);
+    const calculateAndUpdateTotals = (currentItems: OrderFormValues['items']) => {
+      let subtotal = 0;
+      let totalDiscount = 0;
+      
+      currentItems.forEach(item => {
+        const itemUnitPrice = Number(item.unitPrice) || 0;
+        const itemQuantity = Number(item.quantity) || 0;
+        const itemDiscountPerUnit = Number(item.discount) || 0;
+
+        subtotal += itemUnitPrice * itemQuantity;
+        totalDiscount += itemDiscountPerUnit * itemQuantity;
+      });
+
+      const grandTotal = subtotal - totalDiscount;
+      setCalculatedTotals({ subtotal, totalDiscount, grandTotal });
+    };
+
+    const debouncedCalculate = _.debounce(calculateAndUpdateTotals, 300);
+
+    if (watchedItems && watchedItems.length > 0) {
+      debouncedCalculate(watchedItems);
+    } else {
+      setCalculatedTotals({ subtotal: 0, totalDiscount: 0, grandTotal: 0 });
+      debouncedCalculate.cancel(); // Cancel any pending calculation if items are cleared
+    }
+
+    return () => {
+      debouncedCalculate.cancel();
+    };
+  }, [watchedItems, setCalculatedTotals]);
 
 
   const handleProductChange = (itemIndex: number, productId: string) => {
@@ -101,7 +107,6 @@ export function OrderForm() {
     if (product) {
       form.setValue(`items.${itemIndex}.productName`, product.name, { shouldValidate: true });
       form.setValue(`items.${itemIndex}.unitPrice`, product.price, { shouldValidate: true });
-      // Reset discount when product changes, or implement more complex logic
       form.setValue(`items.${itemIndex}.discount`, 0, { shouldValidate: true }); 
     }
   };
@@ -113,10 +118,10 @@ export function OrderForm() {
         const finalUnitPrice = (Number(item.unitPrice) || 0) - (Number(item.discount) || 0);
         return {
           productId: item.productId,
-          productName: item.productName, // Ensure this is populated
+          productName: item.productName, 
           quantity: Number(item.quantity),
           unitPrice: Number(item.unitPrice),
-          discount: Number(item.discount), // Discount per unit
+          discount: Number(item.discount), 
           finalUnitPrice: finalUnitPrice,
           lineTotal: finalUnitPrice * (Number(item.quantity)),
         };
@@ -132,7 +137,7 @@ export function OrderForm() {
 
       toast({ title: "Success", description: "Order created successfully." });
       form.reset();
-      router.push("/history"); // Navigate to order history
+      router.push("/history"); 
       router.refresh();
     } catch (error) {
       console.error("Failed to create order:", error);
@@ -305,7 +310,7 @@ export function OrderForm() {
               <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting} className="font-body text-base py-2 px-6">
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || storeIsLoading} className="font-body bg-accent text-accent-foreground hover:bg-accent/90 text-base py-2 px-6">
+              <Button type="submit" disabled={isSubmitting || storeIsLoading || form.formState.isSubmitting || !form.formState.isValid} className="font-body bg-accent text-accent-foreground hover:bg-accent/90 text-base py-2 px-6">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Create Order
               </Button>
@@ -316,3 +321,4 @@ export function OrderForm() {
     </Card>
   );
 }
+
