@@ -65,14 +65,6 @@ function mapDbProductToProduct(dbData: any): Product {
 }
 
 
-const initialProductsData: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'stock' | 'user_id'>[] = [
-  { name: 'Classic White Tee', description: 'A comfortable and stylish white t-shirt made from premium organic cotton. Perfect for everyday wear.', price: 25.99, lowStockThreshold: 10, category: 'Tops', imageUrl: 'https://placehold.co/600x400.png', dataAiHint: 'white t-shirt' },
-  { name: 'Slim Fit Jeans - Dark Wash', description: 'Modern slim fit jeans crafted from stretch denim for maximum comfort and style. Features a classic five-pocket design.', price: 79.50, lowStockThreshold: 5, category: 'Bottoms', imageUrl: 'https://placehold.co/600x400.png', dataAiHint: 'blue jeans' },
-  { name: 'Wool Blend Scarf - Charcoal', description: 'A luxurious and warm wool blend scarf in a versatile charcoal grey. Ideal for chilly days.', price: 35.00, lowStockThreshold: 8, category: 'Accessories', imageUrl: 'https://placehold.co/600x400.png', dataAiHint: 'wool scarf' },
-];
-const initialStocks = [50, 5, 30];
-
-
 export const StoreProvider = ({ children }: { children: ReactNode }) => {
   // Use the Supabase client from AuthContext
   const { user, isLoading: authIsLoading, isAuthenticated, supabase } = useAuth();
@@ -104,42 +96,10 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         .eq('user_id', user.id);
       if (productsError) throw productsError;
       
-      let currentProductsFromDb = (productsData || []).map(mapDbProductToProduct);
-
-      if (currentProductsFromDb.length === 0 && user) { // Ensure user exists for seeding
-        const seededProducts: Product[] = [];
-        for (let i = 0; i < initialProductsData.length; i++) {
-          const productBase = initialProductsData[i];
-          const stock = initialStocks[i];
-          
-          const newProductToSeedPayload = mapProductToDbPayload(productBase, user.id, stock);
-          
-          const { data: insertedDbProduct, error: insertError } = await supabase
-            .from('products')
-            .insert(newProductToSeedPayload)
-            .select()
-            .single();
-          
-          if (insertError) throw insertError;
-          if (insertedDbProduct) {
-            const newProduct = mapDbProductToProduct(insertedDbProduct);
-            seededProducts.push(newProduct);
-            await supabase.from('transactions').insert({
-              product_id: newProduct.id,
-              user_id: user.id,
-              product_name: newProduct.name,
-              type: 'initial',
-              quantity_change: stock,
-              stock_before: 0,
-              stock_after: stock,
-              notes: 'Initial stock for sample product',
-              timestamp: new Date().toISOString(),
-            });
-          }
-        }
-        currentProductsFromDb = seededProducts;
-      }
+      const currentProductsFromDb = (productsData || []).map(mapDbProductToProduct);
       setProducts(currentProductsFromDb);
+
+      // Removed initial data seeding logic here
 
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
@@ -175,10 +135,10 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
          subtotal: o.subtotal,
          totalDiscount: o.total_discount,
          grandTotal: o.grand_total,
-         status: o.status,
+         status: o.status as OrderStatus,
          notes: o.notes,
-         createdAt: o.created_at, // Mapped from DB
-         updatedAt: o.updated_at, // Mapped from DB
+         createdAt: o.created_at, 
+         updatedAt: o.updated_at, 
          items: (o.order_items || []).map((oi: any) => ({
             productId: oi.product_id,
             productName: oi.product_name,
@@ -197,18 +157,16 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
       setHasFetchedInitialData(true);
     }
-  }, [user, isAuthenticated, toast, hasFetchedInitialData, isLoading, supabase, authIsLoading]); // Added supabase and authIsLoading
+  }, [user, isAuthenticated, toast, hasFetchedInitialData, isLoading, supabase, authIsLoading]);
 
   useEffect(() => {
-    // Fetch data only if supabase client is available, user is authenticated, and data hasn't been fetched yet.
     if (supabase && !authIsLoading && isAuthenticated && user && !hasFetchedInitialData) {
         fetchStoreData();
     } else if (!authIsLoading && !isAuthenticated) {
-        // Clear data if user logs out
         setProducts([]);
         setTransactions([]);
         setOrders([]);
-        setIsLoading(false); // Not loading data if not authenticated
+        setIsLoading(false); 
         setHasFetchedInitialData(false); 
     }
   }, [user, authIsLoading, isAuthenticated, fetchStoreData, hasFetchedInitialData, supabase]);
@@ -227,9 +185,13 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       if (typeof error === 'object' && error !== null) {
         const supabaseError = error as any; 
         errorMessage = supabaseError.message || JSON.stringify(error);
+        if(supabaseError.details) errorMessage += ` Details: ${supabaseError.details}`;
+        if(supabaseError.hint) errorMessage += ` Hint: ${supabaseError.hint}`;
+        if(supabaseError.code) errorMessage += ` Code: ${supabaseError.code}`;
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
+      
       console.error('Error adding product (processed message):', errorMessage);
       toast({ title: "Error", description: `Failed to add product: ${errorMessage}`, variant: "destructive"});
       setIsLoading(false);
@@ -247,7 +209,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         stockAfter: initialStock,
         notes: 'Initial stock added',
       });
-       setProducts(prev => [...prev, newProduct]);
+       setProducts(prev => [...prev, newProduct].sort((a,b) => a.name.localeCompare(b.name)));
     }
     setIsLoading(false);
     return dbData ? mapDbProductToProduct(dbData) : null;
@@ -282,7 +244,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     }
     if (dbData) {
       const updatedProduct = mapDbProductToProduct(dbData);
-      setProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p));
+      setProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p).sort((a,b) => a.name.localeCompare(b.name)));
       setIsLoading(false);
       return updatedProduct;
     }
@@ -385,7 +347,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     
     if (updatedDbProductData) {
       const updatedProduct = mapDbProductToProduct(updatedDbProductData);
-      setProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p));
+      setProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p).sort((a,b) => a.name.localeCompare(b.name)));
       await addTransaction({ 
         productId,
         productName: product.name,
@@ -487,9 +449,8 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       grandTotal: newOrderDbResult.grand_total,
       status: newOrderDbResult.status as OrderStatus,
       notes: newOrderDbResult.notes,
-      // These are not in the Order type for frontend, but exist in DB
-      // createdAt: newOrderDbResult.created_at, 
-      // updatedAt: newOrderDbResult.updated_at,
+      createdAt: newOrderDbResult.created_at,
+      updatedAt: newOrderDbResult.updated_at,
     };
     
     setOrders(prev => [completeOrder, ...prev.sort((a,b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())]);
@@ -532,3 +493,4 @@ export const useStore = (): StoreContextType => {
   }
   return context;
 };
+
