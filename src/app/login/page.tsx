@@ -55,27 +55,27 @@ export default function LoginPage() {
       return;
     }
     await sendPasswordResetEmail(resetEmail);
-    setIsPasswordResetDialogOpen(false); // Close dialog after attempt
-    setResetEmail(''); // Clear the input
+    setIsPasswordResetDialogOpen(false); 
+    setResetEmail(''); 
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-t-4 border-primary rounded-xl">
-        <CardHeader className="text-center pt-8 pb-4">
-          <div className="mx-auto mb-6 flex flex-col items-center justify-center">
-            <Package className="h-12 w-12 text-primary mb-2" />
-            <h1 className="font-headline text-3xl text-primary tracking-tight">Threadcount Tracker</h1>
+      <Card className="w-full max-w-sm sm:max-w-md shadow-2xl border-t-4 border-primary rounded-xl">
+        <CardHeader className="text-center pt-6 sm:pt-8 pb-3 sm:pb-4">
+          <div className="mx-auto mb-4 sm:mb-6 flex flex-col items-center justify-center">
+            <Package className="h-10 w-10 sm:h-12 sm:w-12 text-primary mb-2" />
+            <h1 className="font-headline text-2xl sm:text-3xl text-primary tracking-tight">Threadcount Tracker</h1>
           </div>
-          <CardTitle className="font-headline text-2xl">Welcome Back!</CardTitle>
-          <CardDescription className="font-body text-muted-foreground pt-1">
+          <CardTitle className="font-headline text-xl sm:text-2xl">Welcome Back!</CardTitle>
+          <CardDescription className="font-body text-muted-foreground pt-1 text-xs sm:text-sm">
             Sign in to manage your inventory.
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-8 pb-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="font-body text-sm">Email</Label>
+        <CardContent className="px-6 sm:px-8 pb-4 sm:pb-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="email" className="font-body text-xs sm:text-sm">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -83,11 +83,11 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="font-body"
+                className="font-body text-sm sm:text-base h-9 sm:h-10"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="font-body text-sm">Password</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="password" className="font-body text-xs sm:text-sm">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -95,32 +95,32 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="font-body"
+                className="font-body text-sm sm:text-base h-9 sm:h-10"
               />
             </div>
-            <Button type="submit" className="w-full font-headline text-base py-3 mt-2" disabled={isSubmitting || authLoading}>
+            <Button type="submit" className="w-full font-headline text-sm sm:text-base py-2.5 sm:py-3 mt-1 sm:mt-2 h-auto" disabled={isSubmitting || authLoading}>
               {isSubmitting || authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Sign In
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col items-center space-y-2 pb-8">
+        <CardFooter className="flex flex-col items-center space-y-2 pb-6 sm:pb-8">
            <Dialog open={isPasswordResetDialogOpen} onOpenChange={setIsPasswordResetDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="link" className="p-0 text-sm text-muted-foreground hover:text-primary font-body">
+              <Button variant="link" className="p-0 text-xs sm:text-sm text-muted-foreground hover:text-primary font-body">
                 Forgot Password?
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md font-body">
               <DialogHeader>
-                <DialogTitle className="font-headline text-2xl">Reset Password</DialogTitle>
-                <DialogDescription className="font-body pt-1">
+                <DialogTitle className="font-headline text-xl sm:text-2xl">Reset Password</DialogTitle>
+                <DialogDescription className="font-body pt-1 text-xs sm:text-sm">
                   Enter your email address and we&apos;ll send you a link to reset your password.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="reset-email">Email Address</Label>
+                  <Label htmlFor="reset-email" className="text-xs sm:text-sm">Email Address</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -129,25 +129,25 @@ export default function LoginPage() {
                       placeholder="you@example.com"
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 text-sm sm:text-base h-9 sm:h-10"
                     />
                   </div>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
                 <DialogClose asChild>
-                  <Button type="button" variant="outline" className="font-body">Cancel</Button>
+                  <Button type="button" variant="outline" className="font-body text-xs sm:text-sm w-full sm:w-auto">Cancel</Button>
                 </DialogClose>
-                <Button type="button" onClick={handlePasswordResetRequest} disabled={authLoading} className="font-body">
+                <Button type="button" onClick={handlePasswordResetRequest} disabled={authLoading} className="font-body text-xs sm:text-sm w-full sm:w-auto">
                   {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Send Reset Link
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          <p className="text-sm text-muted-foreground font-body">
+          <p className="text-xs sm:text-sm text-muted-foreground font-body">
             Don&apos;t have an account?{' '}
-            <Button variant="link" asChild className="p-0 text-accent hover:text-accent/80 font-semibold">
+            <Button variant="link" asChild className="p-0 text-accent hover:text-accent/80 font-semibold text-xs sm:text-sm">
               <Link href="/signup">Sign Up</Link>
             </Button>
           </p>

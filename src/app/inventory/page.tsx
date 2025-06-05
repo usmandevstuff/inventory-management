@@ -85,8 +85,8 @@ export default function InventoryPage() {
   };
   
   const SortIndicator = ({ column }: { column: SortableColumns }) => {
-    if (sortColumn !== column) return <ChevronDown className="h-4 w-4 inline ml-1 opacity-30" />; // Show neutral icon for non-active sort columns
-    return sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 inline ml-1 text-primary" /> : <ChevronDown className="h-4 w-4 inline ml-1 text-primary" />;
+    if (sortColumn !== column) return <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 inline ml-1 opacity-30" />;
+    return sortDirection === 'asc' ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 inline ml-1 text-primary" /> : <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 inline ml-1 text-primary" />;
   };
 
   if (isLoading) {
@@ -96,24 +96,24 @@ export default function InventoryPage() {
   return (
     <MainAppLayoutWrapper>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <h1 className="font-headline text-4xl text-primary">Product Inventory</h1>
-          <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90 font-body text-base py-2.5 px-5 rounded-md shadow-md hover:shadow-lg transition-all duration-200">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+          <h1 className="font-headline text-2xl sm:text-3xl md:text-4xl text-primary">Product Inventory</h1>
+          <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90 font-body text-sm sm:text-base py-2 px-4 sm:py-2.5 sm:px-5 rounded-md shadow-md hover:shadow-lg transition-all duration-200 w-full sm:w-auto">
             <Link href="/inventory/add">
-              <PlusCircle className="mr-2 h-5 w-5" /> Add New Product
+              <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Add New Product
             </Link>
           </Button>
         </div>
 
         <Card className="shadow-xl rounded-lg">
-          <CardHeader className="border-b">
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+          <CardHeader className="border-b p-4">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4 justify-between items-stretch md:items-center">
               <div className="relative flex-1 md:grow-0 w-full md:w-auto">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search products by name, desc, category..."
-                  className="w-full rounded-lg bg-background pl-10 md:w-[250px] lg:w-[350px] font-body h-10"
+                  placeholder="Search products..."
+                  className="w-full rounded-lg bg-background pl-10 md:w-[200px] lg:w-[300px] font-body h-9 sm:h-10 text-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -121,12 +121,12 @@ export default function InventoryPage() {
               <div className="flex gap-2 w-full md:w-auto">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full md:w-auto font-body h-10">
-                    <Filter className="mr-2 h-4 w-4" /> Categories ({categoryFilter.length > 0 ? categoryFilter.length : 'All'}) <ChevronDown className="ml-2 h-4 w-4" />
+                  <Button variant="outline" className="w-full md:w-auto font-body h-9 sm:h-10 text-xs sm:text-sm">
+                    <Filter className="mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Categories ({categoryFilter.length > 0 ? categoryFilter.length : 'All'}) <ChevronDown className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[220px] font-body">
-                  <DropdownMenuLabel className="font-headline">Filter by Category</DropdownMenuLabel>
+                <DropdownMenuContent align="end" className="w-[200px] sm:w-[220px] font-body">
+                  <DropdownMenuLabel className="font-headline text-sm">Filter by Category</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {allCategories.map((cat) => (
                     <DropdownMenuCheckboxItem
@@ -137,6 +137,7 @@ export default function InventoryPage() {
                           checked ? [...prev, cat] : prev.filter(c => c !== cat)
                         );
                       }}
+                      className="text-xs sm:text-sm"
                     >
                       {cat}
                     </DropdownMenuCheckboxItem>
@@ -144,8 +145,8 @@ export default function InventoryPage() {
                   {categoryFilter.length > 0 && (
                     <>
                     <DropdownMenuSeparator />
-                    <Button variant="ghost" size="sm" onClick={() => setCategoryFilter([])} className="w-full justify-start text-destructive hover:text-destructive h-auto py-1.5 px-2">
-                        <XCircle className="mr-2 h-4 w-4" /> Clear filters
+                    <Button variant="ghost" size="sm" onClick={() => setCategoryFilter([])} className="w-full justify-start text-destructive hover:text-destructive h-auto py-1.5 px-2 text-xs sm:text-sm">
+                        <XCircle className="mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Clear filters
                     </Button>
                     </>
                   )}
@@ -156,68 +157,68 @@ export default function InventoryPage() {
           </CardHeader>
           <CardContent className="pt-0">
             {filteredAndSortedProducts.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground font-body">
-                <PackageOpen className="mx-auto h-16 w-16 mb-4 text-gray-400" />
-                <h3 className="text-xl font-semibold mb-2 font-headline">No Products Found</h3>
-                <p className="mb-4">
+              <div className="text-center py-10 sm:py-12 text-muted-foreground font-body">
+                <PackageOpen className="mx-auto h-12 w-12 sm:h-16 sm:w-16 mb-3 sm:mb-4 text-gray-400" />
+                <h3 className="text-lg sm:text-xl font-semibold mb-1 sm:mb-2 font-headline">No Products Found</h3>
+                <p className="mb-3 sm:mb-4 text-sm sm:text-base">
                   {searchTerm || categoryFilter.length > 0 ? "Try adjusting your search or filters." : "You haven't added any products yet."}
                 </p>
                 {!searchTerm && categoryFilter.length === 0 && (
-                   <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90 font-body">
+                   <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90 font-body text-sm sm:text-base">
                     <Link href="/inventory/add">
-                      <PlusCircle className="mr-2 h-5 w-5" /> Add Your First Product
+                      <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Add Your First Product
                     </Link>
                   </Button>
                 )}
               </div>
             ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
+            <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px] hidden sm:table-cell"></TableHead>
-                    <TableHead onClick={() => handleSort('name')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Name <SortIndicator column="name" /></TableHead>
-                    <TableHead onClick={() => handleSort('category')} className="hidden md:table-cell cursor-pointer hover:text-primary font-headline text-sm p-3">Category <SortIndicator column="category" /></TableHead>
-                    <TableHead onClick={() => handleSort('price')} className="text-right cursor-pointer hover:text-primary font-headline text-sm p-3">Price <SortIndicator column="price" /></TableHead>
-                    <TableHead onClick={() => handleSort('stock')} className="text-right cursor-pointer hover:text-primary font-headline text-sm p-3">Stock <SortIndicator column="stock" /></TableHead>
-                    <TableHead className="text-right font-headline text-sm p-3">Actions</TableHead>
+                    <TableHead className="w-[60px] sm:w-[80px] hidden sm:table-cell p-2 sm:p-3"></TableHead>
+                    <TableHead onClick={() => handleSort('name')} className="cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3">Name <SortIndicator column="name" /></TableHead>
+                    <TableHead onClick={() => handleSort('category')} className="hidden md:table-cell cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3">Category <SortIndicator column="category" /></TableHead>
+                    <TableHead onClick={() => handleSort('price')} className="text-right cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3">Price <SortIndicator column="price" /></TableHead>
+                    <TableHead onClick={() => handleSort('stock')} className="text-right cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3">Stock <SortIndicator column="stock" /></TableHead>
+                    <TableHead className="text-right font-headline text-xs sm:text-sm p-2 sm:p-3">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredAndSortedProducts.map((product) => (
-                    <TableRow key={product.id} className="hover:bg-secondary/50 transition-colors group">
-                      <TableCell className="hidden sm:table-cell p-2">
+                    <TableRow key={product.id} className="hover:bg-secondary/50 transition-colors group font-body text-xs sm:text-sm">
+                      <TableCell className="hidden sm:table-cell p-1.5 sm:p-2">
                         <Image
                           alt={product.name}
                           className="aspect-square rounded-md object-cover"
-                          height="56"
-                          src={product.imageUrl || "https://placehold.co/64x64.png"}
-                          width="56"
+                          height="48"
+                          src={product.imageUrl || "https://placehold.co/56x56.png"}
+                          width="48"
                           data-ai-hint={product.dataAiHint || "clothing item"}
                         />
                       </TableCell>
-                      <TableCell className="font-medium font-body p-3">
+                      <TableCell className="font-medium p-2 sm:p-3">
                         <Link href={`/inventory/edit/${product.id}`} className="hover:underline hover:text-primary">{product.name}</Link>
                         <p className="text-xs text-muted-foreground md:hidden">{product.category}</p>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell font-body p-3">{product.category || 'N/A'}</TableCell>
-                      <TableCell className="text-right font-body p-3">${product.price.toFixed(2)}</TableCell>
-                      <TableCell className={`text-right font-body p-3 ${product.stock <= product.lowStockThreshold ? 'text-destructive font-bold' : ''}`}>
+                      <TableCell className="hidden md:table-cell p-2 sm:p-3">{product.category || 'N/A'}</TableCell>
+                      <TableCell className="text-right p-2 sm:p-3">${product.price.toFixed(2)}</TableCell>
+                      <TableCell className={`text-right p-2 sm:p-3 ${product.stock <= product.lowStockThreshold ? 'text-destructive font-bold' : ''}`}>
                         {product.stock}
-                        {product.stock <= product.lowStockThreshold && <Badge variant="destructive" className="ml-2 text-xs">Low</Badge>}
+                        {product.stock <= product.lowStockThreshold && <Badge variant="destructive" className="ml-1 sm:ml-2 text-xs px-1.5 py-0.5 sm:px-2">Low</Badge>}
                       </TableCell>
-                      <TableCell className="text-right p-3">
-                        <div className="flex gap-2 justify-end">
-                          <Button asChild variant="outline" size="icon" className="h-8 w-8 hover:border-primary hover:text-primary group-hover:opacity-100 md:opacity-50 transition-opacity">
+                      <TableCell className="text-right p-2 sm:p-3">
+                        <div className="flex gap-1 sm:gap-2 justify-end">
+                          <Button asChild variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 hover:border-primary hover:text-primary group-hover:opacity-100 opacity-70 sm:opacity-50 transition-opacity">
                             <Link href={`/inventory/edit/${product.id}`}>
-                              <Edit3 className="h-4 w-4" />
+                              <Edit3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               <span className="sr-only">Edit</span>
                             </Link>
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="icon" className="h-8 w-8 hover:border-destructive hover:text-destructive group-hover:opacity-100 md:opacity-50 transition-opacity">
-                                <Trash2 className="h-4 w-4" />
+                              <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 hover:border-destructive hover:text-destructive group-hover:opacity-100 opacity-70 sm:opacity-50 transition-opacity">
+                                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                 <span className="sr-only">Delete</span>
                               </Button>
                             </AlertDialogTrigger>

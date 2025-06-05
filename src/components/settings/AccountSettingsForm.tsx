@@ -30,7 +30,7 @@ const updatePasswordSchema = z.object({
   confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords do not match.",
-  path: ["confirmPassword"], // path of error
+  path: ["confirmPassword"], 
 });
 type UpdatePasswordFormValues = z.infer<typeof updatePasswordSchema>;
 
@@ -59,11 +59,7 @@ export function AccountSettingsForm() {
 
   async function onUpdateEmail(data: UpdateEmailFormValues) {
     setIsEmailSubmitting(true);
-    const success = await updateUserEmail(data.newEmail);
-    if (success) {
-      // Toast is handled in AuthContext, but you could add more specific UI updates here
-      // emailForm.reset({ newEmail: data.newEmail }); // Reflect pending change
-    }
+    await updateUserEmail(data.newEmail);
     setIsEmailSubmitting(false);
   }
 
@@ -77,36 +73,36 @@ export function AccountSettingsForm() {
   }
 
   return (
-    <div className="space-y-8 max-w-2xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 max-w-2xl mx-auto">
       <Card className="shadow-lg rounded-lg">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <Mail className="h-6 w-6 text-primary" />
-            <CardTitle className="font-headline text-2xl text-primary">Update Email Address</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Mail className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <CardTitle className="font-headline text-lg sm:text-xl md:text-2xl text-primary">Update Email Address</CardTitle>
           </div>
-          <CardDescription className="font-body">
+          <CardDescription className="font-body text-xs sm:text-sm">
             Current email: <span className="font-semibold text-foreground">{user?.email}</span>. 
-            Changing your email will require confirmation via both your old and new email addresses.
+            Changing your email will require confirmation.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           <Form {...emailForm}>
-            <form onSubmit={emailForm.handleSubmit(onUpdateEmail)} className="space-y-6">
+            <form onSubmit={emailForm.handleSubmit(onUpdateEmail)} className="space-y-4 sm:space-y-6">
               <FormField
                 control={emailForm.control}
                 name="newEmail"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-headline">New Email Address</FormLabel>
+                    <FormLabel className="font-headline text-sm sm:text-base">New Email Address</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="your.new.email@example.com" {...field} className="font-body"/>
+                      <Input type="email" placeholder="your.new.email@example.com" {...field} className="font-body text-sm sm:text-base"/>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs"/>
                   </FormItem>
                 )}
               />
               <div className="flex justify-end">
-                <Button type="submit" disabled={isEmailSubmitting || authLoading} className="font-body bg-primary text-primary-foreground hover:bg-primary/90">
+                <Button type="submit" disabled={isEmailSubmitting || authLoading} className="font-body bg-primary text-primary-foreground hover:bg-primary/90 text-sm sm:text-base w-full sm:w-auto">
                   {isEmailSubmitting || authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Update Email
                 </Button>
@@ -117,28 +113,28 @@ export function AccountSettingsForm() {
       </Card>
 
       <Card className="shadow-lg rounded-lg">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <KeyRound className="h-6 w-6 text-primary" />
-            <CardTitle className="font-headline text-2xl text-primary">Update Password</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <KeyRound className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <CardTitle className="font-headline text-lg sm:text-xl md:text-2xl text-primary">Update Password</CardTitle>
           </div>
-           <CardDescription className="font-body">
-            Choose a new, strong password for your account. Minimum 6 characters.
+           <CardDescription className="font-body text-xs sm:text-sm">
+            Choose a new, strong password. Minimum 6 characters.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           <Form {...passwordForm}>
-            <form onSubmit={passwordForm.handleSubmit(onUpdatePassword)} className="space-y-6">
+            <form onSubmit={passwordForm.handleSubmit(onUpdatePassword)} className="space-y-4 sm:space-y-6">
               <FormField
                 control={passwordForm.control}
                 name="newPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-headline">New Password</FormLabel>
+                    <FormLabel className="font-headline text-sm sm:text-base">New Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} className="font-body"/>
+                      <Input type="password" placeholder="••••••••" {...field} className="font-body text-sm sm:text-base"/>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs"/>
                   </FormItem>
                 )}
               />
@@ -147,16 +143,16 @@ export function AccountSettingsForm() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-headline">Confirm New Password</FormLabel>
+                    <FormLabel className="font-headline text-sm sm:text-base">Confirm New Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} className="font-body"/>
+                      <Input type="password" placeholder="••••••••" {...field} className="font-body text-sm sm:text-base"/>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs"/>
                   </FormItem>
                 )}
               />
               <div className="flex justify-end">
-                <Button type="submit" disabled={isPasswordSubmitting || authLoading} className="font-body bg-primary text-primary-foreground hover:bg-primary/90">
+                <Button type="submit" disabled={isPasswordSubmitting || authLoading} className="font-body bg-primary text-primary-foreground hover:bg-primary/90 text-sm sm:text-base w-full sm:w-auto">
                   {isPasswordSubmitting || authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Update Password
                 </Button>

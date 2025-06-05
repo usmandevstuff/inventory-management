@@ -85,8 +85,8 @@ export default function TransactionsPage() {
   };
   
   const SortIndicator = ({ column }: { column: SortableTransactionColumns }) => {
-    if (sortColumn !== column) return <ChevronDown className="h-4 w-4 inline ml-1 opacity-30" />;
-    return sortDirection === 'asc' ? <ChevronUp className="h-4 w-4 inline ml-1 text-primary" /> : <ChevronDown className="h-4 w-4 inline ml-1 text-primary" />;
+    if (sortColumn !== column) return <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 inline ml-1 opacity-30" />;
+    return sortDirection === 'asc' ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 inline ml-1 text-primary" /> : <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 inline ml-1 text-primary" />;
   };
 
   const getTransactionTypeBadgeVariant = (type: Transaction['type']) => {
@@ -118,29 +118,29 @@ export default function TransactionsPage() {
   return (
     <MainAppLayoutWrapper>
       <div className="space-y-6">
-        <div className="flex items-center gap-3 border-b pb-4">
-          <Repeat className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
-          <h1 className="font-headline text-3xl sm:text-4xl text-primary">All Transactions</h1>
+        <div className="flex items-center gap-2 sm:gap-3 border-b pb-3 sm:pb-4">
+          <Repeat className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary" />
+          <h1 className="font-headline text-2xl sm:text-3xl md:text-4xl text-primary">All Transactions</h1>
         </div>
         
         <Card className="shadow-xl rounded-lg">
-          <CardHeader className="border-b p-4 md:p-6">
-             <CardDescription className="font-body text-sm sm:text-md text-muted-foreground">
+          <CardHeader className="border-b p-4">
+             <CardDescription className="font-body text-xs sm:text-sm md:text-md text-muted-foreground">
                 A detailed log of all stock movements. Currently showing {filteredAndSortedTransactions.length} of {transactions.length} total transactions.
             </CardDescription>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end pt-4">
-              <div className="relative">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-end pt-3 sm:pt-4">
+              <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by product, type, notes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="font-body pl-10 h-10"
+                  className="font-body pl-10 h-9 sm:h-10 w-full"
                 />
               </div>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal font-body h-10">
+                  <Button variant="outline" className="w-full md:w-auto justify-start text-left font-normal font-body h-9 sm:h-10 text-xs sm:text-sm">
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateRange.from ? (
                       dateRange.to ? `${format(dateRange.from, "LLL dd, y")} - ${format(dateRange.to, "LLL dd, y")}`
@@ -158,8 +158,8 @@ export default function TransactionsPage() {
                     numberOfMonths={isClient && typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2}
                   />
                    { (dateRange.from || dateRange.to) && 
-                    <Button onClick={() => setDateRange({})} variant="ghost" className="w-full justify-start text-sm text-destructive hover:text-destructive font-body h-auto py-1.5 px-2">
-                      <XCircle className="mr-2 h-4 w-4" /> Clear dates
+                    <Button onClick={() => setDateRange({})} variant="ghost" className="w-full justify-start text-xs sm:text-sm text-destructive hover:text-destructive font-body h-auto py-1.5 px-2">
+                      <XCircle className="mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Clear dates
                     </Button>
                   }
                 </PopoverContent>
@@ -168,44 +168,44 @@ export default function TransactionsPage() {
           </CardHeader>
           <CardContent className="pt-0">
             {filteredAndSortedTransactions.length === 0 ? (
-               <div className="text-center py-12 text-muted-foreground font-body">
-                <FileText className="mx-auto h-16 w-16 mb-4 text-gray-400" />
-                <h3 className="text-xl font-semibold mb-2 font-headline">No Transactions Found</h3>
-                <p>{searchTerm || dateRange.from || dateRange.to ? "Try adjusting your search or date filters." : "No transactions have been recorded yet."}</p>
+               <div className="text-center py-10 sm:py-12 text-muted-foreground font-body">
+                <FileText className="mx-auto h-12 w-12 sm:h-16 sm:w-16 mb-3 sm:mb-4 text-gray-400" />
+                <h3 className="text-lg sm:text-xl font-semibold mb-1 sm:mb-2 font-headline">No Transactions Found</h3>
+                <p className="text-sm sm:text-base">{searchTerm || dateRange.from || dateRange.to ? "Try adjusting your search or date filters." : "No transactions have been recorded yet."}</p>
               </div>
             ) : (
             <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead onClick={() => handleSort('timestamp')} className="cursor-pointer hover:text-primary font-headline text-sm p-3 whitespace-nowrap">Date <SortIndicator column="timestamp"/></TableHead>
-                    <TableHead onClick={() => handleSort('productName')} className="cursor-pointer hover:text-primary font-headline text-sm p-3 whitespace-nowrap">Product <SortIndicator column="productName"/></TableHead>
-                    <TableHead onClick={() => handleSort('type')} className="cursor-pointer hover:text-primary font-headline text-sm p-3">Type <SortIndicator column="type"/></TableHead>
-                    <TableHead onClick={() => handleSort('quantityChange')} className="text-center cursor-pointer hover:text-primary font-headline text-sm p-3">Change <SortIndicator column="quantityChange"/></TableHead>
-                    <TableHead className="text-center font-headline text-sm p-3 hidden md:table-cell">Stock Before</TableHead>
-                    <TableHead onClick={() => handleSort('stockAfter')} className="text-center cursor-pointer hover:text-primary font-headline text-sm p-3">Stock After <SortIndicator column="stockAfter"/></TableHead>
-                    <TableHead className="font-headline text-sm p-3 hidden lg:table-cell">Notes</TableHead>
+                    <TableHead onClick={() => handleSort('timestamp')} className="cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Date <SortIndicator column="timestamp"/></TableHead>
+                    <TableHead onClick={() => handleSort('productName')} className="cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Product <SortIndicator column="productName"/></TableHead>
+                    <TableHead onClick={() => handleSort('type')} className="cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3">Type <SortIndicator column="type"/></TableHead>
+                    <TableHead onClick={() => handleSort('quantityChange')} className="text-center cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3">Change <SortIndicator column="quantityChange"/></TableHead>
+                    <TableHead className="text-center font-headline text-xs sm:text-sm p-2 sm:p-3 hidden md:table-cell">Stock Before</TableHead>
+                    <TableHead onClick={() => handleSort('stockAfter')} className="text-center cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3">Stock After <SortIndicator column="stockAfter"/></TableHead>
+                    <TableHead className="font-headline text-xs sm:text-sm p-2 sm:p-3 hidden lg:table-cell">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredAndSortedTransactions.map((tx) => (
                     <TableRow key={tx.id} className="hover:bg-secondary/50 transition-colors font-body">
-                      <TableCell className="p-3 whitespace-nowrap text-xs sm:text-sm">{format(parseISO(tx.timestamp), 'PP pp')}</TableCell>
-                      <TableCell className="font-medium p-3 whitespace-nowrap text-xs sm:text-sm">{tx.productName || 'N/A'}</TableCell>
-                      <TableCell className="p-3">
+                      <TableCell className="p-2 sm:p-3 whitespace-nowrap text-xs sm:text-sm">{format(parseISO(tx.timestamp), 'PP p')}</TableCell>
+                      <TableCell className="font-medium p-2 sm:p-3 whitespace-nowrap text-xs sm:text-sm">{tx.productName || 'N/A'}</TableCell>
+                      <TableCell className="p-2 sm:p-3">
                         <Badge 
                           variant={getTransactionTypeBadgeVariant(tx.type)}
-                          className="capitalize text-xs"
+                          className="capitalize text-xs px-1.5 py-0.5 sm:px-2.5 sm:py-0.5"
                         >
                           {tx.type}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`text-center p-3 font-medium text-xs sm:text-sm ${tx.quantityChange < 0 ? 'text-destructive' : 'text-green-600'}`}>
+                      <TableCell className={`text-center p-2 sm:p-3 font-medium text-xs sm:text-sm ${tx.quantityChange < 0 ? 'text-destructive' : 'text-green-600'}`}>
                         {formatQuantityChange(tx)}
                       </TableCell>
-                      <TableCell className="text-center p-3 hidden md:table-cell text-xs sm:text-sm">{tx.stockBefore}</TableCell>
-                      <TableCell className="text-center p-3 font-bold text-xs sm:text-sm">{tx.stockAfter}</TableCell>
-                      <TableCell className="p-3 text-xs text-muted-foreground max-w-[100px] sm:max-w-[150px] truncate hidden lg:table-cell" title={tx.notes}>{tx.notes || '-'}</TableCell>
+                      <TableCell className="text-center p-2 sm:p-3 hidden md:table-cell text-xs sm:text-sm">{tx.stockBefore}</TableCell>
+                      <TableCell className="text-center p-2 sm:p-3 font-bold text-xs sm:text-sm">{tx.stockAfter}</TableCell>
+                      <TableCell className="p-2 sm:p-3 text-xs text-muted-foreground max-w-[80px] sm:max-w-[100px] md:max-w-[150px] truncate hidden lg:table-cell" title={tx.notes}>{tx.notes || '-'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
