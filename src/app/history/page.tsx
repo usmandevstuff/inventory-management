@@ -4,6 +4,7 @@
 import MainAppLayoutWrapper from '@/components/layout/MainAppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useStore } from '@/contexts/StoreContext';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 import {
   Table,
   TableBody,
@@ -39,6 +40,7 @@ type SortDirection = 'asc' | 'desc';
 
 export default function HistoryPage() {
   const { orders, isLoading } = useStore();
+  const { user } = useAuth(); // Get user from AuthContext
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
@@ -114,7 +116,25 @@ export default function HistoryPage() {
       return;
     }
 
-    const printContents = printArea.innerHTML;
+    const storeName = user?.user_metadata?.store_name || 'Threadcount Tracker';
+    const invoiceGeneratedDate = new Date().toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    const invoiceHeaderHtml = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 class="font-headline text-2xl text-primary" style="margin-bottom: 5px !important; color: hsl(var(--primary)) !important;">${storeName}</h1>
+        <p class="font-body text-sm text-muted-foreground" style="color: hsl(var(--muted-foreground)) !important; margin-top: 0 !important;">Invoice Generated: ${invoiceGeneratedDate}</p>
+      </div>
+      <hr style="border-color: hsl(var(--border)) !important; margin-bottom: 20px !important;">
+    `;
+
+    const printContents = invoiceHeaderHtml + printArea.innerHTML;
 
     const themeRootColors = `
       :root {
@@ -143,15 +163,18 @@ export default function HistoryPage() {
 
     const originalPrintStyles = `
       .print-container { position: relative; width: 100%; font-family: 'Poppins', serif; }
-      .print-container h1, .print-container h2, .print-container h3, .print-container h4 { font-family: 'Raleway', sans-serif;}
+      .print-container h1, .print-container h2, .print-container h3, .print-container h4, .print-container h5, .print-container h6 { font-family: 'Raleway', sans-serif !important; }
       .print-container .font-headline { font-family: 'Raleway', sans-serif !important; }
       .print-container .font-body { font-family: 'Poppins', serif !important; }
+      
       .print-container .text-primary { color: hsl(var(--primary)) !important; }
       .print-container .text-foreground { color: hsl(var(--foreground)) !important; }
       .print-container .text-muted-foreground { color: hsl(var(--muted-foreground)) !important; }
       .print-container .bg-secondary\\/30 { background-color: hsla(var(--secondary), 0.3) !important; }
-      .print-container .border-b { border-bottom-width: 1px !important; border-bottom-color: hsl(var(--border)) !important; border-bottom-style: solid !important; }
-      .print-container .border-t { border-top-width: 1px !important; border-top-color: hsl(var(--border)) !important; border-top-style: solid !important; }
+      
+      .print-container .border-b { border-bottom-width: 1px !important; border-color: hsl(var(--border)) !important; border-style: solid !important; }
+      .print-container .border-t { border-top-width: 1px !important; border-color: hsl(var(--border)) !important; border-style: solid !important; }
+
       .print-container .pb-4 { padding-bottom: 1rem !important; }
       .print-container .pt-2 { padding-top: 0.5rem !important; }
       .print-container .pt-6 { padding-top: 1.5rem !important; }
@@ -162,13 +185,17 @@ export default function HistoryPage() {
       .print-container .mb-6 { margin-bottom: 1.5rem !important; }
       .print-container .p-3 { padding: 0.75rem !important; }
       .print-container .rounded-md { border-radius: 0.375rem !important; }
+      
       .print-container table { width: 100%; border-collapse: collapse; }
-      .print-container th, .print-container td { border: 1px solid hsl(var(--border)); padding: 0.25rem 0.5rem; text-align: left;}
+      .print-container th, .print-container td { border: 1px solid hsl(var(--border)) !important; padding: 0.25rem 0.5rem !important; text-align: left !important;}
+      .print-container th { font-weight: 600 !important; } /* Ensure table headers are bold */
+      
       .print-container .text-right { text-align: right !important; }
       .print-container .text-center { text-align: center !important; }
       .print-container .font-semibold { font-weight: 600 !important; }
       .print-container .font-bold { font-weight: 700 !important; }
       .print-container .font-extrabold { font-weight: 800 !important; }
+      
       .print-container .text-xs { font-size: 0.75rem !important; line-height: 1rem !important;}
       .print-container .text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important;}
       .print-container .text-md { font-size: 1rem !important; line-height: 1.5rem !important;}
@@ -176,6 +203,7 @@ export default function HistoryPage() {
       .print-container .text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important;}
       .print-container .text-2xl { font-size: 1.5rem !important; line-height: 2rem !important;}
       .print-container .text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important;}
+      .print-container .text-green-600 { color: #16a34a !important; } /* Direct color for green */
     `;
     
     const finalPrintStyles = `
@@ -183,8 +211,8 @@ export default function HistoryPage() {
         ${themeRootColors}
         body { 
           font-family: 'Poppins', serif; 
-          background-color: #fff;
-          color: #000;
+          background-color: #fff !important; /* Ensure white background for printing */
+          color: hsl(var(--foreground)) !important; /* Ensure base text color */
           margin: 0;
           padding: 0;
         }
@@ -195,18 +223,18 @@ export default function HistoryPage() {
             margin: 0.5in;
           }
           body { 
-            -webkit-print-color-adjust: exact; 
-            print-color-adjust: exact; 
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important; 
             margin: 0;
           }
           .print-container {
-             padding: 0 !important; /* Reset padding if @page margin is used */
+             padding: 0 !important; 
           }
           a[href]:after { content: none !important; }
           img { max-width: 100% !important; break-inside: avoid; }
           table { width: 100% !important; border-collapse: collapse !important; page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
-          th, td { border: 1px solid #ccc !important; padding: 4px 8px !important; }
+          th, td { border: 1px solid hsl(var(--border)) !important; padding: 4px 8px !important; }
           thead { display: table-header-group !important; }
           tfoot { display: table-footer-group !important; }
           .no-print { display: none !important; }
@@ -223,7 +251,6 @@ export default function HistoryPage() {
       printWindow.document.write('<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">');
       printWindow.document.write(finalPrintStyles);
       printWindow.document.write('</head><body>');
-      // Wrap the content in the .print-container class for the styles to apply
       printWindow.document.write(`<div class="print-container p-4 sm:p-8">`); 
       printWindow.document.write(printContents);
       printWindow.document.write('</div>');
@@ -231,11 +258,8 @@ export default function HistoryPage() {
       printWindow.document.close();
       printWindow.focus();
       
-      // Delay print to allow content and styles to load
       setTimeout(() => {
         printWindow.print();
-        // Optionally close the window after printing, but often users want to keep it for PDF saving
-        // printWindow.close(); 
       }, 500);
     } else {
       toast({
@@ -305,8 +329,8 @@ export default function HistoryPage() {
                 <p className="text-sm sm:text-base">{searchTerm || dateRange.from || dateRange.to ? "Try adjusting your search or filters." : "No orders have been placed yet."}</p>
               </div>
             ) : (
-              <div className="relative w-full overflow-auto">
-                <Table className="min-w-full">
+               <div className="relative w-full overflow-auto">
+                <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead onClick={() => handleSort('orderNumber')} className="cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Order ID <SortIndicator column="orderNumber"/></TableHead>
@@ -352,9 +376,10 @@ export default function HistoryPage() {
                                   </DialogHeader>
                                   <div className="flex-grow overflow-y-auto pr-2 -mr-2 sm:pr-0 sm:-mr-0">
                                     <div id="invoice-print-area">
+                                      {/* Store Name and Generated Date will be prepended by JS for printing */}
                                       <h3 className="font-headline text-md sm:text-lg text-primary mb-2">Items:</h3>
                                       <div className="overflow-x-auto mb-4 sm:mb-6">
-                                        <Table className="mb-0 text-xs sm:text-sm">
+                                        <Table className="mb-0 text-xs sm:text-sm min-w-[500px]">
                                             <TableHeader>
                                                 <TableRow>
                                                     <TableHead className="font-semibold whitespace-nowrap p-1.5 sm:p-2">Product</TableHead>
@@ -414,6 +439,3 @@ export default function HistoryPage() {
     </MainAppLayoutWrapper>
   );
 }
-
-
-    
