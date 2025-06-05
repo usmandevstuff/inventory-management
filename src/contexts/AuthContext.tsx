@@ -44,22 +44,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
         setIsLoading(false); // Update loading state on any auth change
         
-        if (event === 'SIGNED_IN') {
-          // If login was successful and onAuthStateChange picked it up,
-          // router.refresh() should have already been called by the login function.
-          // The middleware would then handle redirection.
-          // We can add an extra refresh here if needed, but it might be redundant.
-          // router.refresh(); 
-        } else if (event === 'SIGNED_OUT') {
-          // router.refresh(); // Ensure middleware re-evaluates after sign out
-        }
+        // No explicit router.refresh() here for SIGNED_IN/SIGNED_OUT,
+        // as specific actions (login, logout) will handle it.
       }
     );
 
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, [supabase, router]);
+  }, [supabase, router]); // Removed 'user' from dependencies as it can cause loops
 
   const login = async (email?: string, password?: string): Promise<void> => {
     if (!email || !password) {
@@ -75,10 +68,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else if (data && data.session) {
       // Successful login according to Supabase client
       console.log('Login successful (client-side):', data.session.user?.email); // Browser console log
-      // The onAuthStateChange listener will/should update the user state.
-      // Router.refresh() will trigger middleware to read the new session cookie and redirect.
-      toast({ title: "Login Succeeded (Client)", description: "Refreshing session...", variant: "default", duration: 3000 }); // Temporary feedback
-      router.refresh(); // This is crucial for middleware to pick up the new session
+      toast({ title: "Login Succeeded (Client)", description: "Redirecting to dashboard...", variant: "default", duration: 3000 });
+      router.push('/dashboard'); // Explicit navigation to dashboard
     } else {
       // This case should ideally not happen if there's no error and no session.
       toast({ title: "Login Ambiguous", description: "Login did not return an error or a session.", variant: "destructive"});
@@ -95,6 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email, 
       password,
       options: {
+        // Ensure this matches your Supabase project's redirect settings if email confirmation is enabled
         emailRedirectTo: `${window.location.origin}/auth/callback`, 
       }
     });
@@ -109,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           variant: "default",
           duration: 10000 
         });
-      router.refresh();
+      router.refresh(); // Refresh to update server components and potentially trigger middleware if on a public page
     }
   };
 
@@ -119,13 +111,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: "Logout Failed", description: error.message, variant: "destructive"});
         console.error('Logout error:', error.message);
     }
-    // setUser(null); // onAuthStateChange will handle this
-    router.refresh(); 
+    // onAuthStateChange will set user to null.
+    // Middleware will handle redirecting from protected routes.
+    // We might want to explicitly push to login to ensure immediate UI update.
+    router.push('/login'); 
+    router.refresh(); // Also refresh to ensure server components clear any user-specific data.
   };
 
   const sendPasswordResetEmail = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/settings?view=update_password`, 
+      redirectTo: `${window.location.origin}/settings?view=update_password`, // Or a dedicated password reset page
     });
     if (error) {
       toast({ title: "Password Reset Failed", description: error.message, variant: "destructive"});
