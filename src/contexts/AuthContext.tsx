@@ -23,7 +23,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const supabase = useMemo(() => createClientComponentClient(), []);
+  const supabase = useMemo(() => {
+    console.log("AuthContext: Initializing Supabase client via useMemo.");
+    return createClientComponentClient();
+  }, []);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -33,6 +36,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log("AuthContext: useEffect for initial session and auth state change runs.");
     const getInitialSession = async () => {
       console.log("AuthContext: Attempting to get initial session.");
+      if (!supabase) {
+        console.error("AuthContext: Supabase client not initialized in getInitialSession.");
+        setIsLoading(false);
+        return;
+      }
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
         console.error("AuthContext: Error getting initial session:", error.message);
@@ -45,11 +53,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     getInitialSession();
 
+    if (!supabase) {
+      console.error("AuthContext: Supabase client not available for onAuthStateChange listener setup.");
+      return;
+    }
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
         console.log("AuthContext: onAuthStateChange event:", event, "Session:", session ? `User: ${session.user.email}` : "No session");
         setUser(session?.user ?? null);
-        setIsLoading(false); 
+        // Only set isLoading to false here if it was true from initial load,
+        // otherwise rapid events might cause flicker if data is already loaded.
+        if (isLoading) setIsLoading(false);
       }
     );
 
@@ -57,9 +71,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log("AuthContext: Unsubscribing auth listener.");
       authListener?.subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, isLoading]); // Added isLoading to dependencies
 
   const login = async (email?: string, password?: string): Promise<void> => {
+    if (!supabase) {
+        console.error("AuthContext: Supabase client not available for login.");
+        toast({ title: "Login Failed", description: "Supabase client not initialized.", variant: "destructive"});
+        return;
+    }
     if (!email || !password) {
         toast({ title: "Login Failed", description: "Email and password are required.", variant: "destructive"});
         return;
@@ -71,28 +90,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) {
       toast({ title: "Login Failed", description: error.message, variant: "destructive"});
-      console.error('AuthContext: Login error:', error.message, error);
+      console.error('AuthContext: Login error:', error.message, 'Full error object:', error);
     } else if (data && data.session) {
-      console.log('AuthContext: Login successful (client-side Supabase response):', data.session.user?.email);
-      // setUser(data.session.user); // This will be handled by onAuthStateChange
-      toast({ title: "Login Succeeded (Client)", description: "Redirecting to dashboard...", duration: 3000 });
+      console.log('AuthContext: Login successful (client-side Supabase response). User:', data.session.user?.email);
+      console.log('AuthContext: Full session data from signInWithPassword:', data.session);
+      console.log('AuthContext: Full user data from signInWithPassword:', data.user);
+      toast({ title: "Login Succeeded (Client)", description: "Attempting to redirect. Check browser cookies NOW.", duration: 7000 });
       
-      // Critical: Allow onAuthStateChange to fire and update state, then force reload.
-      // The cookie should be set by Supabase client at this point.
-      // A full page reload ensures the server (and middleware) gets the new cookie.
+      // Brief delay to allow potential cookie setting, then check document.cookie and redirect.
+      // This log will only show non-HttpOnly cookies. The important check is in dev tools.
       setTimeout(() => {
+        console.log("AuthContext: Post-login attempt, current document.cookie (may not show HttpOnly auth tokens):", document.cookie);
         if (typeof window !== "undefined") {
+          console.log("AuthContext: Forcing redirect to /dashboard via window.location.href");
           window.location.href = '/dashboard';
         }
-      }, 100); // Short delay to ensure state updates can propagate if needed by onAuthStateChange
+      }, 200); // Increased delay slightly for observation
 
     } else {
-      toast({ title: "Login Ambiguous", description: "Login did not return an error or a session.", variant: "destructive"});
-      console.error('AuthContext: Login ambiguous: No error, no session. Data:', data);
+      toast({ title: "Login Ambiguous", description: "Login did not return an error or a session. Check console.", variant: "destructive"});
+      console.error('AuthContext: Login ambiguous. No error, but no session/user data returned. Full response data:', data);
     }
   };
 
   const signup = async (email?: string, password?: string) => {
+    if (!supabase) {
+        console.error("AuthContext: Supabase client not available for signup.");
+        toast({ title: "Signup Failed", description: "Supabase client not initialized.", variant: "destructive"});
+        return;
+    }
     if (!email || !password) {
         toast({ title: "Signup Failed", description: "Email and password are required.", variant: "destructive"});
         return;
@@ -116,11 +142,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           duration: 10000 
         });
       // User state will be updated by onAuthStateChange
-      router.refresh(); // Refresh to potentially trigger middleware if on a page like /login
+      // Forcing a refresh or navigation might be needed if middleware needs to re-evaluate.
+      router.refresh();
+    } else {
+      console.warn("AuthContext: Signup response did not contain user data but no error. Data:", data)
+      toast({
+          title: "Signup Response Incomplete",
+          description: "Signup process completed without error, but user data was not immediately available. If email verification is required, please check your email.",
+          duration: 10000
+      });
     }
   };
 
   const logout = async () => {
+    if (!supabase) {
+        console.error("AuthContext: Supabase client not available for logout.");
+        toast({ title: "Logout Failed", description: "Supabase client not initialized.", variant: "destructive"});
+        return;
+    }
     console.log("AuthContext: Attempting logout.");
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -129,14 +168,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       console.log("AuthContext: Logout successful. Client session cleared.");
       // User state will be set to null by onAuthStateChange
-      // router.push('/login'); // Ensure navigation happens after state update
       if (typeof window !== "undefined") {
-        window.location.href = '/login'; // Force reload to login ensures middleware re-evaluates
+        console.log("AuthContext: Forcing redirect to /login via window.location.href after logout.");
+        window.location.href = '/login'; 
       }
     }
   };
 
   const sendPasswordResetEmail = async (email: string) => {
+    if (!supabase) {
+        console.error("AuthContext: Supabase client not available for password reset.");
+        toast({ title: "Password Reset Failed", description: "Supabase client not initialized.", variant: "destructive"});
+        return;
+    }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: typeof window !== "undefined" ? `${window.location.origin}/settings?view=update_password` : undefined, 
     });
@@ -148,26 +192,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateUserEmail = async (newEmail: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!supabase || !user) {
+      console.error("AuthContext: Supabase client or user not available for email update.");
+      toast({ title: "Email Update Failed", description: "Client or user not available.", variant: "destructive"});
+      return false;
+    }
     const { data, error } = await supabase.auth.updateUser({ email: newEmail });
     if (error) {
       toast({ title: "Email Update Failed", description: error.message, variant: "destructive"});
       return false;
     }
     toast({ title: "Email Update Initiated", description: "Please check both your old and new email addresses for confirmation links.", duration: 10000 });
-    router.refresh();
+    router.refresh(); // Refresh to update server components with new (pending) user state
     return true;
   };
   
   const updateUserPassword = async (newPassword: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!supabase || !user) {
+      console.error("AuthContext: Supabase client or user not available for password update.");
+      toast({ title: "Password Update Failed", description: "Client or user not available.", variant: "destructive"});
+      return false;
+    }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       toast({ title: "Password Update Failed", description: error.message, variant: "destructive"});
       return false;
     }
     toast({ title: "Password Updated Successfully", description: "Your password has been changed."});
-    router.refresh();
+    // Potentially sign out other sessions, or refresh current one.
+    router.refresh(); // Refresh to ensure server components reflect any immediate changes
     return true;
   };
   
