@@ -1,20 +1,20 @@
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { StoreProvider } from '@/contexts/StoreContext';
 import { AuthProvider } from '@/contexts/AuthContext';
-// import { PageTransitionWrapper } from '@/components/layout/PageTransitionWrapper'; // Removed
 import { ThemeProvider } from "next-themes";
 
 
 export const metadata: Metadata = {
   title: 'Threadcount Tracker',
   description: 'Inventory management for your clothing store',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -38,9 +38,7 @@ export default function RootLayout({
         >
           <AuthProvider>
             <StoreProvider>
-              {/* <PageTransitionWrapper> Removed */}
                 {children}
-              {/* </PageTransitionWrapper> Removed */}
               <Toaster />
             </StoreProvider>
           </AuthProvider>
