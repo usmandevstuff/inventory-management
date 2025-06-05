@@ -43,37 +43,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       async (event: AuthChangeEvent, session: Session | null) => {
         setUser(session?.user ?? null);
         setIsLoading(false); // Update loading state on any auth change
-        
-        // No explicit router.refresh() here for SIGNED_IN/SIGNED_OUT,
-        // as specific actions (login, logout) will handle it.
       }
     );
 
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, [supabase, router]); // Removed 'user' from dependencies as it can cause loops
+  }, [supabase]);
 
   const login = async (email?: string, password?: string): Promise<void> => {
     if (!email || !password) {
         toast({ title: "Login Failed", description: "Email and password are required.", variant: "destructive"});
         return;
     }
-    console.log("Attempting login for:", email); // Browser console log
+    // console.log("Attempting login for:", email); // Browser console log
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       toast({ title: "Login Failed", description: error.message, variant: "destructive"});
-      console.error('Login error:', error.message, error); // Log the full error object
+      // console.error('Login error:', error.message, error); // Log the full error object
     } else if (data && data.session) {
       // Successful login according to Supabase client
-      console.log('Login successful (client-side):', data.session.user?.email); // Browser console log
-      toast({ title: "Login Succeeded (Client)", description: "Redirecting to dashboard...", variant: "default", duration: 3000 });
-      router.push('/dashboard'); // Explicit navigation to dashboard
+      // console.log('Login successful (client-side):', data.session.user?.email);
+      // toast({ title: "Login Succeeded (Client)", description: "Redirecting to dashboard...", variant: "default", duration: 3000 });
+      
+      // Refresh current route data; this allows middleware to potentially see the new session
+      // and redirect if user is on /login page.
+      router.refresh(); 
+      
+      // Explicitly push to dashboard. Middleware for /dashboard will re-validate.
+      router.push('/dashboard'); 
     } else {
       // This case should ideally not happen if there's no error and no session.
       toast({ title: "Login Ambiguous", description: "Login did not return an error or a session.", variant: "destructive"});
-      console.error('Login ambiguous: No error, no session. Data:', data);
+      // console.error('Login ambiguous: No error, no session. Data:', data);
     }
   };
 
@@ -86,7 +89,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email, 
       password,
       options: {
-        // Ensure this matches your Supabase project's redirect settings if email confirmation is enabled
         emailRedirectTo: `${window.location.origin}/auth/callback`, 
       }
     });
@@ -101,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           variant: "default",
           duration: 10000 
         });
-      router.refresh(); // Refresh to update server components and potentially trigger middleware if on a public page
+      router.refresh(); 
     }
   };
 
@@ -111,16 +113,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: "Logout Failed", description: error.message, variant: "destructive"});
         console.error('Logout error:', error.message);
     }
-    // onAuthStateChange will set user to null.
-    // Middleware will handle redirecting from protected routes.
-    // We might want to explicitly push to login to ensure immediate UI update.
     router.push('/login'); 
-    router.refresh(); // Also refresh to ensure server components clear any user-specific data.
+    router.refresh(); 
   };
 
   const sendPasswordResetEmail = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/settings?view=update_password`, // Or a dedicated password reset page
+      redirectTo: `${window.location.origin}/settings?view=update_password`, 
     });
     if (error) {
       toast({ title: "Password Reset Failed", description: error.message, variant: "destructive"});
