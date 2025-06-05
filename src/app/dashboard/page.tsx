@@ -18,6 +18,7 @@ export default function DashboardPage() {
     setIsClientHydrated(true); 
   }, []);
 
+  // Consolidate loading check
   if (!isClientHydrated || storeIsLoading) {
     return (
       <MainAppLayoutWrapper>
@@ -164,7 +165,7 @@ export default function DashboardPage() {
               {lowStockProducts.slice(0,4).map(product => ( 
                 <Link href={`/inventory/edit/${product.id}`} key={product.id} className="block group">
                   <Card className="overflow-hidden h-full flex flex-col rounded-lg shadow-md group-hover:shadow-xl transition-shadow duration-300 ease-in-out">
-                    <div className="relative w-full aspect-[4/3]"> {/* Changed to aspect ratio */}
+                    <div className="relative w-full aspect-[4/3]">
                       <Image 
                         src={product.imageUrl || "https://placehold.co/400x300.png"} 
                         alt={product.name} 
@@ -200,4 +201,3 @@ export default function DashboardPage() {
     </MainAppLayoutWrapper>
   );
 }
-

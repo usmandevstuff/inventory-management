@@ -1,3 +1,4 @@
+
 // src/components/layout/PageTransitionWrapper.tsx
 "use client";
 
@@ -20,7 +21,7 @@ export function PageTransitionWrapper({ children }: PageTransitionWrapperProps) 
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -15 }}
         transition={{ duration: 0.25, ease: "easeInOut" }}
-        className="flex flex-col flex-1" // Ensures the motion div grows and handles its children as a flex column
+        className="flex flex-col flex-1" // Ensures the motion div grows and allows children to expand
       >
         {children}
       </motion.div>
