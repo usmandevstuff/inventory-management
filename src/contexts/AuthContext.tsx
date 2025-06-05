@@ -7,6 +7,11 @@ import { createClientComponentClient } from '@/lib/supabase/client';
 import type { AuthChangeEvent, Session, User, SupabaseClient } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 
+interface UserProfileUpdateData {
+  fullName?: string;
+  storeName?: string;
+}
+
 interface AuthContextType {
   supabase: SupabaseClient;
   isAuthenticated: boolean;
@@ -17,6 +22,7 @@ interface AuthContextType {
   sendPasswordResetEmail: (email: string) => Promise<void>;
   updateUserEmail: (newEmail: string) => Promise<boolean>;
   updateUserPassword: (newPassword: string) => Promise<boolean>;
+  updateUserProfile: (data: UserProfileUpdateData) => Promise<boolean>;
   isLoading: boolean;
 }
 
@@ -59,10 +65,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        console.log("AuthContext: onAuthStateChange event:", event, "Session:", session ? `User: ${session.user.email}` : "No session");
+        console.log("AuthContext: onAuthStateChange event:", event, "Session:", session ? `User: ${session.user.email}, Metadata: ${JSON.stringify(session.user.user_metadata)}` : "No session");
         setUser(session?.user ?? null);
-        // Only set isLoading to false here if it was true from initial load,
-        // otherwise rapid events might cause flicker if data is already loaded.
         if (isLoading) setIsLoading(false);
       }
     );
@@ -71,7 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log("AuthContext: Unsubscribing auth listener.");
       authListener?.subscription.unsubscribe();
     };
-  }, [supabase, isLoading]); // Added isLoading to dependencies
+  }, [supabase, isLoading]);
 
   const login = async (email?: string, password?: string): Promise<void> => {
     if (!supabase) {
@@ -86,28 +90,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log("AuthContext: Attempting login for:", email);
     setIsLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setIsLoading(false);
+    
 
     if (error) {
+      setIsLoading(false);
       toast({ title: "Login Failed", description: error.message, variant: "destructive"});
       console.error('AuthContext: Login error:', error.message, 'Full error object:', error);
     } else if (data && data.session) {
       console.log('AuthContext: Login successful (client-side Supabase response). User:', data.session.user?.email);
       console.log('AuthContext: Full session data from signInWithPassword:', data.session);
       console.log('AuthContext: Full user data from signInWithPassword:', data.user);
-      toast({ title: "Login Succeeded (Client)", description: "Attempting to redirect. Check browser cookies NOW.", duration: 7000 });
+      // setUser will be updated by onAuthStateChange. This line ensures isLoading is false.
+      setIsLoading(false); 
+      toast({ title: "Login Succeeded (Client)", description: "Redirecting to dashboard...", duration: 3000 });
       
-      // Brief delay to allow potential cookie setting, then check document.cookie and redirect.
-      // This log will only show non-HttpOnly cookies. The important check is in dev tools.
+      // Allow onAuthStateChange to process before forced navigation
       setTimeout(() => {
         console.log("AuthContext: Post-login attempt, current document.cookie (may not show HttpOnly auth tokens):", document.cookie);
         if (typeof window !== "undefined") {
           console.log("AuthContext: Forcing redirect to /dashboard via window.location.href");
-          window.location.href = '/dashboard';
+          window.location.href = '/dashboard'; 
         }
-      }, 200); // Increased delay slightly for observation
+      }, 100);
 
     } else {
+      setIsLoading(false);
       toast({ title: "Login Ambiguous", description: "Login did not return an error or a session. Check console.", variant: "destructive"});
       console.error('AuthContext: Login ambiguous. No error, but no session/user data returned. Full response data:', data);
     }
@@ -141,8 +148,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           description: "Please check your email to verify your account if required by your settings.",
           duration: 10000 
         });
-      // User state will be updated by onAuthStateChange
-      // Forcing a refresh or navigation might be needed if middleware needs to re-evaluate.
       router.refresh();
     } else {
       console.warn("AuthContext: Signup response did not contain user data but no error. Data:", data)
@@ -167,7 +172,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('AuthContext: Logout error:', error.message);
     } else {
       console.log("AuthContext: Logout successful. Client session cleared.");
-      // User state will be set to null by onAuthStateChange
       if (typeof window !== "undefined") {
         console.log("AuthContext: Forcing redirect to /login via window.location.href after logout.");
         window.location.href = '/login'; 
@@ -203,7 +207,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
     toast({ title: "Email Update Initiated", description: "Please check both your old and new email addresses for confirmation links.", duration: 10000 });
-    router.refresh(); // Refresh to update server components with new (pending) user state
+    router.refresh(); 
     return true;
   };
   
@@ -219,8 +223,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
     toast({ title: "Password Updated Successfully", description: "Your password has been changed."});
-    // Potentially sign out other sessions, or refresh current one.
-    router.refresh(); // Refresh to ensure server components reflect any immediate changes
+    router.refresh(); 
+    return true;
+  };
+
+  const updateUserProfile = async (profileData: UserProfileUpdateData): Promise<boolean> => {
+    if (!supabase || !user) {
+      console.error("AuthContext: Supabase client or user not available for profile update.");
+      toast({ title: "Profile Update Failed", description: "Client or user not available.", variant: "destructive" });
+      return false;
+    }
+
+    const updateData: { full_name?: string; store_name?: string } = {};
+    if (profileData.fullName !== undefined) {
+      updateData.full_name = profileData.fullName;
+    }
+    if (profileData.storeName !== undefined) {
+      updateData.store_name = profileData.storeName;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      toast({ title: "No Changes", description: "No profile information was provided to update." });
+      return true; // No actual update needed
+    }
+
+    const { data, error } = await supabase.auth.updateUser({ data: updateData });
+
+    if (error) {
+      toast({ title: "Profile Update Failed", description: error.message, variant: "destructive" });
+      console.error('AuthContext: Profile update error:', error.message);
+      return false;
+    }
+    
+    // Manually update the local user state's metadata immediately
+    // because onAuthStateChange might be slow or not granular enough for metadata-only updates
+    if (data.user) {
+        setUser(prevUser => prevUser ? ({
+            ...prevUser,
+            user_metadata: {
+                ...prevUser.user_metadata,
+                ...updateData // merge the new data
+            }
+        }) : null);
+    }
+
+
+    toast({ title: "Profile Updated", description: "Your profile information has been saved." });
+    // router.refresh(); // Refresh to reflect changes in server components if necessary
     return true;
   };
   
@@ -235,6 +284,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         sendPasswordResetEmail,
         updateUserEmail,
         updateUserPassword,
+        updateUserProfile,
         isLoading 
     }}>
       {children}
