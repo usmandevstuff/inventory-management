@@ -152,7 +152,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error: any) {
       console.error("Error fetching store data:", error);
-      toast({ title: "Data Load Error", description: error?.message || "Could not load store data.", variant: "destructive"});
+      toast({ title: "Data Load Error", description: error ? JSON.stringify(error) : "Could not load store data.", variant: "destructive"});
     } finally {
       setIsLoading(false);
       setHasFetchedInitialData(true);

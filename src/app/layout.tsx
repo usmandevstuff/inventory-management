@@ -12,11 +12,6 @@ export const metadata: Metadata = {
   description: 'Inventory management for your clothing store',
 };
 
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{

@@ -169,104 +169,108 @@ export default function HistoryPage() {
                 <p className="text-sm sm:text-base">{searchTerm || dateRange.from || dateRange.to ? "Try adjusting your search or filters." : "No orders have been placed yet."}</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead onClick={() => handleSort('orderNumber')} className="cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Order ID <SortIndicator column="orderNumber"/></TableHead>
-                    <TableHead onClick={() => handleSort('orderDate')} className="cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Date <SortIndicator column="orderDate"/></TableHead>
-                    <TableHead className="font-headline text-xs sm:text-sm p-2 sm:p-3 hidden md:table-cell">Items</TableHead>
-                    <TableHead onClick={() => handleSort('grandTotal')} className="text-right cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Total <SortIndicator column="grandTotal"/></TableHead>
-                    <TableHead onClick={() => handleSort('status')} className="text-center cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3">Status <SortIndicator column="status"/></TableHead>
-                    <TableHead className="text-center font-headline text-xs sm:text-sm p-2 sm:p-3">Invoice</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAndSortedOrders.map((order) => (
-                    <TableRow key={order.id} className="hover:bg-secondary/50 transition-colors font-body text-xs sm:text-sm">
-                      <TableCell className="font-medium p-2 sm:p-3 whitespace-nowrap">{order.orderNumber}</TableCell>
-                      <TableCell className="p-2 sm:p-3 whitespace-nowrap">{format(parseISO(order.orderDate), 'PP p')}</TableCell>
-                      <TableCell className="p-2 sm:p-3 hidden md:table-cell">{order.items.reduce((acc, item) => acc + item.quantity, 0)}</TableCell>
-                      <TableCell className="text-right font-medium p-2 sm:p-3 whitespace-nowrap">${order.grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
-                      <TableCell className="text-center p-2 sm:p-3">
-                        <Badge 
-                          variant={order.status === 'completed' ? 'default' : order.status === 'pending' ? 'secondary' : 'destructive'}
-                          className="capitalize text-xs px-1.5 py-0.5 sm:px-2.5 sm:py-0.5"
-                        >
-                          {order.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center p-2 sm:p-3">
-                        <Dialog onOpenChange={(open) => !open && setSelectedOrder(null)}>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(order)} className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-primary/10">
-                              <Receipt className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
-                            </Button>
-                          </DialogTrigger>
-                           {selectedOrder && selectedOrder.id === order.id && (
-                            <DialogContent className="sm:max-w-2xl font-body data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 max-h-[90vh] flex flex-col" id="invoice-dialog-content">
-                                <DialogHeader className="mb-4 sm:mb-6 border-b pb-3 sm:pb-4">
-                                    <DialogTitle className="font-headline text-xl sm:text-2xl md:text-3xl text-primary">Invoice / Order Details</DialogTitle>
-                                    <div className="flex flex-col sm:flex-row justify-between text-xs sm:text-sm text-muted-foreground gap-1">
-                                        <span>Order ID: <span className="font-mono text-xs font-medium text-foreground">{selectedOrder.orderNumber}</span></span>
-                                        <span>Date: <span className="font-medium text-foreground">{format(parseISO(selectedOrder.orderDate), 'PPP')}</span></span>
-                                    </div>
-                                </DialogHeader>
-                                <div className="flex-grow overflow-y-auto pr-2 -mr-2 sm:pr-0 sm:-mr-0">
-                                  <div id="invoice-print-area">
-                                    <h3 className="font-headline text-md sm:text-lg text-primary mb-2">Items:</h3>
-                                    <div className="overflow-x-auto mb-4 sm:mb-6">
-                                      <Table className="mb-0 text-xs sm:text-sm">
-                                          <TableHeader>
-                                              <TableRow>
-                                                  <TableHead className="font-semibold whitespace-nowrap p-1.5 sm:p-2">Product</TableHead>
-                                                  <TableHead className="text-center font-semibold p-1.5 sm:p-2">Qty</TableHead>
-                                                  <TableHead className="text-right font-semibold whitespace-nowrap p-1.5 sm:p-2">Price/Unit</TableHead>
-                                                  <TableHead className="text-right font-semibold whitespace-nowrap hidden sm:table-cell p-1.5 sm:p-2">Discount/Unit</TableHead>
-                                                  <TableHead className="text-right font-semibold whitespace-nowrap p-1.5 sm:p-2">Final Price/Unit</TableHead>
-                                                  <TableHead className="text-right font-semibold whitespace-nowrap p-1.5 sm:p-2">Line Total</TableHead>
-                                              </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                              {selectedOrder.items.map(item => (
-                                                  <TableRow key={item.productId}>
-                                                      <TableCell className="p-1.5 sm:p-2">{item.productName}</TableCell>
-                                                      <TableCell className="text-center p-1.5 sm:p-2">{item.quantity}</TableCell>
-                                                      <TableCell className="text-right whitespace-nowrap p-1.5 sm:p-2">${item.unitPrice.toFixed(2)}</TableCell>
-                                                      <TableCell className="text-right text-green-600 whitespace-nowrap hidden sm:table-cell p-1.5 sm:p-2">${item.discount.toFixed(2)}</TableCell>
-                                                      <TableCell className="text-right font-medium whitespace-nowrap p-1.5 sm:p-2">${item.finalUnitPrice.toFixed(2)}</TableCell>
-                                                      <TableCell className="text-right font-bold whitespace-nowrap p-1.5 sm:p-2">${item.lineTotal.toFixed(2)}</TableCell>
-                                                  </TableRow>
-                                              ))}
-                                          </TableBody>
-                                      </Table>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 text-xs sm:text-sm md:text-md w-full ml-auto max-w-xs sm:max-w-sm mr-0">
-                                        <span className="font-semibold text-muted-foreground">Subtotal:</span><span className="text-right">${selectedOrder.subtotal.toFixed(2)}</span>
-                                        <span className="font-semibold text-muted-foreground">Total Discount:</span><span className="text-right text-green-600">-${selectedOrder.totalDiscount.toFixed(2)}</span>
-                                        <span className="font-bold text-md sm:text-lg md:text-xl text-primary border-t pt-1 sm:pt-2 mt-1">Grand Total:</span><span className="text-right font-extrabold text-md sm:text-lg md:text-xl text-primary border-t pt-1 sm:pt-2 mt-1">${selectedOrder.grandTotal.toFixed(2)}</span>
-                                    </div>
-
-                                    {selectedOrder.notes && (
-                                        <div className="mt-4 sm:mt-6">
-                                            <h4 className="font-headline text-sm sm:text-md text-primary mb-1">Notes:</h4>
-                                            <p className="bg-secondary/30 p-2 sm:p-3 rounded-md text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap">{selectedOrder.notes}</p>
-                                        </div>
-                                    )}
-                                  </div>
-                                </div>
-                                <DialogFooter className="pt-4 sm:pt-6 border-t mt-auto flex flex-col sm:flex-row gap-2 w-full">
-                                  <Button type="button" variant="outline" onClick={handlePrintInvoice} className="font-body text-xs sm:text-sm w-full sm:w-auto">Print Invoice</Button>
-                                  <DialogClose asChild><Button type="button" className="font-body text-xs sm:text-sm w-full sm:w-auto">Close</Button></DialogClose>
-                                </DialogFooter>
-                            </DialogContent>
-                          )}
-                        </Dialog>
-                      </TableCell>
+              <div className="relative w-full overflow-auto">
+                <Table className="min-w-full">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead onClick={() => handleSort('orderNumber')} className="cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Order ID <SortIndicator column="orderNumber"/></TableHead>
+                      <TableHead onClick={() => handleSort('orderDate')} className="cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Date <SortIndicator column="orderDate"/></TableHead>
+                      <TableHead className="font-headline text-xs sm:text-sm p-2 sm:p-3 hidden md:table-cell">Items</TableHead>
+                      <TableHead onClick={() => handleSort('grandTotal')} className="text-right cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Total <SortIndicator column="grandTotal"/></TableHead>
+                      <TableHead onClick={() => handleSort('status')} className="text-center cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3">Status <SortIndicator column="status"/></TableHead>
+                      <TableHead className="text-center font-headline text-xs sm:text-sm p-2 sm:p-3">Invoice</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAndSortedOrders.map((order) => (
+                      <TableRow key={order.id} className="hover:bg-secondary/50 transition-colors font-body text-xs sm:text-sm">
+                        <TableCell className="font-medium p-2 sm:p-3 whitespace-nowrap">{order.orderNumber}</TableCell>
+                        <TableCell className="p-2 sm:p-3 whitespace-nowrap">{format(parseISO(order.orderDate), 'PP p')}</TableCell>
+                        <TableCell className="p-2 sm:p-3 hidden md:table-cell">{order.items.reduce((acc, item) => acc + item.quantity, 0)}</TableCell>
+                        <TableCell className="text-right font-medium p-2 sm:p-3 whitespace-nowrap">${order.grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
+                        <TableCell className="text-center p-2 sm:p-3">
+                          <Badge 
+                            variant={order.status === 'completed' ? 'default' : order.status === 'pending' ? 'secondary' : 'destructive'}
+                            className="capitalize text-xs px-1.5 py-0.5 sm:px-2.5 sm:py-0.5"
+                          >
+                            {order.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center p-2 sm:p-3">
+                          <Dialog onOpenChange={(open) => !open && setSelectedOrder(null)}>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(order)} className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-primary/10">
+                                <Receipt className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
+                              </Button>
+                            </DialogTrigger>
+                            {selectedOrder && selectedOrder.id === order.id && (
+                              <DialogContent className="sm:max-w-2xl font-body data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 max-h-[90vh] flex flex-col" id="invoice-dialog-content">
+                                  <DialogHeader className="mb-4 sm:mb-6 border-b pb-3 sm:pb-4">
+                                      <DialogTitle className="font-headline text-xl sm:text-2xl md:text-3xl text-primary">Invoice / Order Details</DialogTitle>
+                                      <DialogDescription asChild>
+                                        <div className="flex flex-col sm:flex-row justify-between text-xs sm:text-sm text-muted-foreground gap-1 pt-1">
+                                            <span>Order ID: <span className="font-mono text-xs font-medium text-foreground">{selectedOrder.orderNumber}</span></span>
+                                            <span>Date: <span className="font-medium text-foreground">{format(parseISO(selectedOrder.orderDate), 'PPP')}</span></span>
+                                        </div>
+                                      </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="flex-grow overflow-y-auto pr-2 -mr-2 sm:pr-0 sm:-mr-0">
+                                    <div id="invoice-print-area">
+                                      <h3 className="font-headline text-md sm:text-lg text-primary mb-2">Items:</h3>
+                                      <div className="overflow-x-auto mb-4 sm:mb-6">
+                                        <Table className="mb-0 text-xs sm:text-sm">
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="font-semibold whitespace-nowrap p-1.5 sm:p-2">Product</TableHead>
+                                                    <TableHead className="text-center font-semibold p-1.5 sm:p-2">Qty</TableHead>
+                                                    <TableHead className="text-right font-semibold whitespace-nowrap p-1.5 sm:p-2">Price/Unit</TableHead>
+                                                    <TableHead className="text-right font-semibold whitespace-nowrap hidden sm:table-cell p-1.5 sm:p-2">Discount/Unit</TableHead>
+                                                    <TableHead className="text-right font-semibold whitespace-nowrap p-1.5 sm:p-2">Final Price/Unit</TableHead>
+                                                    <TableHead className="text-right font-semibold whitespace-nowrap p-1.5 sm:p-2">Line Total</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {selectedOrder.items.map(item => (
+                                                    <TableRow key={item.productId}>
+                                                        <TableCell className="p-1.5 sm:p-2">{item.productName}</TableCell>
+                                                        <TableCell className="text-center p-1.5 sm:p-2">{item.quantity}</TableCell>
+                                                        <TableCell className="text-right whitespace-nowrap p-1.5 sm:p-2">${item.unitPrice.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right text-green-600 whitespace-nowrap hidden sm:table-cell p-1.5 sm:p-2">${item.discount.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right font-medium whitespace-nowrap p-1.5 sm:p-2">${item.finalUnitPrice.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right font-bold whitespace-nowrap p-1.5 sm:p-2">${item.lineTotal.toFixed(2)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                      </div>
+
+                                      <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 text-xs sm:text-sm md:text-md w-full ml-auto max-w-xs sm:max-w-sm mr-0">
+                                          <span className="font-semibold text-muted-foreground">Subtotal:</span><span className="text-right">${selectedOrder.subtotal.toFixed(2)}</span>
+                                          <span className="font-semibold text-muted-foreground">Total Discount:</span><span className="text-right text-green-600">-${selectedOrder.totalDiscount.toFixed(2)}</span>
+                                          <span className="font-bold text-md sm:text-lg md:text-xl text-primary border-t pt-1 sm:pt-2 mt-1">Grand Total:</span><span className="text-right font-extrabold text-md sm:text-lg md:text-xl text-primary border-t pt-1 sm:pt-2 mt-1">${selectedOrder.grandTotal.toFixed(2)}</span>
+                                      </div>
+
+                                      {selectedOrder.notes && (
+                                          <div className="mt-4 sm:mt-6">
+                                              <h4 className="font-headline text-sm sm:text-md text-primary mb-1">Notes:</h4>
+                                              <p className="bg-secondary/30 p-2 sm:p-3 rounded-md text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap">{selectedOrder.notes}</p>
+                                          </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <DialogFooter className="pt-4 sm:pt-6 border-t mt-auto flex flex-col sm:flex-row gap-2 w-full">
+                                    <Button type="button" variant="outline" onClick={handlePrintInvoice} className="font-body text-xs sm:text-sm w-full sm:w-auto">Print Invoice</Button>
+                                    <DialogClose asChild><Button type="button" className="font-body text-xs sm:text-sm w-full sm:w-auto">Close</Button></DialogClose>
+                                  </DialogFooter>
+                              </DialogContent>
+                            )}
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

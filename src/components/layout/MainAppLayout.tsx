@@ -150,7 +150,7 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
           </SidebarFooter>
         </Sidebar>
         
-        <SidebarInset className="flex flex-col flex-1">
+        <SidebarInset className="flex flex-col flex-1 overflow-y-auto">
           <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/90 backdrop-blur-sm px-6 justify-between shadow-sm">
             <div className="flex items-center gap-2">
               <SidebarTrigger className="md:hidden" />
