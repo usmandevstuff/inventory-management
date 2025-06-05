@@ -256,7 +256,7 @@ export default function HistoryPage() {
                                     )}
                                   </div>
                                 </div>
-                                <DialogFooter className="pt-4 sm:pt-6 border-t mt-4 sm:mt-6 flex flex-col sm:flex-row gap-2">
+                                <DialogFooter className="pt-4 sm:pt-6 border-t mt-auto flex flex-col sm:flex-row gap-2 w-full">
                                   <Button type="button" variant="outline" onClick={handlePrintInvoice} className="font-body text-xs sm:text-sm w-full sm:w-auto">Print Invoice</Button>
                                   <DialogClose asChild><Button type="button" className="font-body text-xs sm:text-sm w-full sm:w-auto">Close</Button></DialogClose>
                                 </DialogFooter>
@@ -276,5 +276,3 @@ export default function HistoryPage() {
     </MainAppLayoutWrapper>
   );
 }
-
-    

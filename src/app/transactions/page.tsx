@@ -285,6 +285,3 @@ export default function TransactionsPage() {
     </MainAppLayoutWrapper>
   );
 }
-
-
-    
