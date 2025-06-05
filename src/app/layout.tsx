@@ -4,7 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { StoreProvider } from '@/contexts/StoreContext';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { PageTransitionWrapper } from '@/components/layout/PageTransitionWrapper';
+// import { PageTransitionWrapper } from '@/components/layout/PageTransitionWrapper'; // Removed
 import { ThemeProvider } from "next-themes";
 
 
@@ -34,9 +34,9 @@ export default function RootLayout({
         >
           <AuthProvider>
             <StoreProvider>
-              <PageTransitionWrapper>
+              {/* <PageTransitionWrapper> Removed */}
                 {children}
-              </PageTransitionWrapper>
+              {/* </PageTransitionWrapper> Removed */}
               <Toaster />
             </StoreProvider>
           </AuthProvider>
