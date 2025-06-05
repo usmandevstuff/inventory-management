@@ -169,7 +169,6 @@ export default function HistoryPage() {
                 <p className="text-sm sm:text-base">{searchTerm || dateRange.from || dateRange.to ? "Try adjusting your search or filters." : "No orders have been placed yet."}</p>
               </div>
             ) : (
-            <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -268,7 +267,6 @@ export default function HistoryPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
             )}
           </CardContent>
         </Card>

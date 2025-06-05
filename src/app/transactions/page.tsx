@@ -184,7 +184,6 @@ export default function TransactionsPage() {
                 <p className="text-sm sm:text-base">{searchTerm || dateRange.from || dateRange.to ? "Try adjusting your search or date filters." : "No transactions have been recorded yet."}</p>
               </div>
             ) : (
-            <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -230,7 +229,6 @@ export default function TransactionsPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
             )}
           </CardContent>
         </Card>
