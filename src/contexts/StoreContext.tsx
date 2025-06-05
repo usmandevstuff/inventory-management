@@ -3,9 +3,10 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import type { Product, Transaction, Order, OrderItem, OrderStatus } from '@/lib/types';
-import { supabase } from '@/lib/supabase/client';
+// We will use the Supabase client from AuthContext for consistency
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import type { SupabaseClient } from '@supabase/supabase-js'; // Import SupabaseClient type
 
 interface StoreContextType {
   products: Product[];
@@ -44,8 +45,6 @@ function mapProductToDbPayload(
   if (stockValue !== undefined) payload.stock = stockValue;
   if (userId) payload.user_id = userId;
   
-  // created_at is handled by DB default
-  // updated_at can be set explicitly or by DB trigger
   return payload;
 }
 
@@ -62,10 +61,8 @@ function mapDbProductToProduct(dbData: any): Product {
     createdAt: dbData.created_at,
     updatedAt: dbData.updated_at,
     dataAiHint: dbData.data_ai_hint,
-    // user_id is not part of the Product type for the frontend model
   };
 }
-// --- End Helper functions ---
 
 
 const initialProductsData: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'stock' | 'user_id'>[] = [
@@ -77,7 +74,8 @@ const initialStocks = [50, 5, 30];
 
 
 export const StoreProvider = ({ children }: { children: ReactNode }) => {
-  const { user, isLoading: authIsLoading, isAuthenticated } = useAuth();
+  // Use the Supabase client from AuthContext
+  const { user, isLoading: authIsLoading, isAuthenticated, supabase } = useAuth();
   const { toast } = useToast();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -87,7 +85,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   const [hasFetchedInitialData, setHasFetchedInitialData] = useState(false);
 
   const fetchStoreData = useCallback(async () => {
-    if (!user || !isAuthenticated) {
+    if (!user || !isAuthenticated || !supabase) { // Check for supabase client
       setProducts([]);
       setTransactions([]);
       setOrders([]);
@@ -96,7 +94,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    if (hasFetchedInitialData && isLoading) return; 
+    if (hasFetchedInitialData && (isLoading || authIsLoading)) return; 
 
     setIsLoading(true);
     try {
@@ -108,7 +106,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       
       let currentProductsFromDb = (productsData || []).map(mapDbProductToProduct);
 
-      if (currentProductsFromDb.length === 0) {
+      if (currentProductsFromDb.length === 0 && user) { // Ensure user exists for seeding
         const seededProducts: Product[] = [];
         for (let i = 0; i < initialProductsData.length; i++) {
           const productBase = initialProductsData[i];
@@ -126,7 +124,6 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
           if (insertedDbProduct) {
             const newProduct = mapDbProductToProduct(insertedDbProduct);
             seededProducts.push(newProduct);
-            // For addTransaction, ensure keys match DB columns (snake_case)
             await supabase.from('transactions').insert({
               product_id: newProduct.id,
               user_id: user.id,
@@ -144,7 +141,6 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       }
       setProducts(currentProductsFromDb);
 
-      // For transactions, map from DB snake_case to JS camelCase if types differ
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
         .select('*')
@@ -165,17 +161,15 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         notes: tx.notes,
       } as Transaction)));
 
-      // For orders, map from DB snake_case to JS camelCase
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('*, order_items(*)') // order_items will also be snake_case
+        .select('*, order_items(*)') 
         .eq('user_id', user.id)
         .order('order_date', { ascending: false });
 
       if (ordersError) throw ordersError;
        setOrders(ordersData ? ordersData.map(o => ({
          id: o.id,
-         user_id: o.user_id, // Keep for consistency if needed, though not in Order type
          orderNumber: o.order_number,
          orderDate: o.order_date,
          subtotal: o.subtotal,
@@ -183,8 +177,8 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
          grandTotal: o.grand_total,
          status: o.status,
          notes: o.notes,
-         createdAt: o.created_at,
-         updatedAt: o.updated_at,
+         createdAt: o.created_at, // Mapped from DB
+         updatedAt: o.updated_at, // Mapped from DB
          items: (o.order_items || []).map((oi: any) => ({
             productId: oi.product_id,
             productName: oi.product_name,
@@ -193,7 +187,6 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
             discount: oi.discount,
             finalUnitPrice: oi.final_unit_price,
             lineTotal: oi.line_total,
-            // id, order_id, user_id, created_at for item are not in OrderItem type
          } as OrderItem))
        } as Order)) : []);
 
@@ -204,23 +197,25 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
       setHasFetchedInitialData(true);
     }
-  }, [user, isAuthenticated, toast, hasFetchedInitialData, isLoading]);
+  }, [user, isAuthenticated, toast, hasFetchedInitialData, isLoading, supabase, authIsLoading]); // Added supabase and authIsLoading
 
   useEffect(() => {
-    if (!authIsLoading && isAuthenticated && user && !hasFetchedInitialData) {
+    // Fetch data only if supabase client is available, user is authenticated, and data hasn't been fetched yet.
+    if (supabase && !authIsLoading && isAuthenticated && user && !hasFetchedInitialData) {
         fetchStoreData();
     } else if (!authIsLoading && !isAuthenticated) {
+        // Clear data if user logs out
         setProducts([]);
         setTransactions([]);
         setOrders([]);
-        setIsLoading(false);
+        setIsLoading(false); // Not loading data if not authenticated
         setHasFetchedInitialData(false); 
     }
-  }, [user, authIsLoading, isAuthenticated, fetchStoreData, hasFetchedInitialData]);
+  }, [user, authIsLoading, isAuthenticated, fetchStoreData, hasFetchedInitialData, supabase]);
 
 
   const addProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'stock' | 'user_id'>, initialStock: number): Promise<Product | null> => {
-    if (!user) return null;
+    if (!user || !supabase) return null;
     setIsLoading(true);
     
     const newProductDbPayload = mapProductToDbPayload(productData, user.id, initialStock);
@@ -232,15 +227,9 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       if (typeof error === 'object' && error !== null) {
         const supabaseError = error as any; 
         errorMessage = supabaseError.message || JSON.stringify(error);
-        
-        console.error('Error adding product (raw object):', error);
-        if (supabaseError.details) console.error('Supabase error details:', supabaseError.details);
-        if (supabaseError.hint) console.error('Supabase error hint:', supabaseError.hint);
-        if (supabaseError.code) console.error('Supabase error code:', supabaseError.code);
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
-      
       console.error('Error adding product (processed message):', errorMessage);
       toast({ title: "Error", description: `Failed to add product: ${errorMessage}`, variant: "destructive"});
       setIsLoading(false);
@@ -249,7 +238,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
 
     if (dbData) {
       const newProduct = mapDbProductToProduct(dbData);
-      await addTransaction({ // addTransaction expects camelCase, will be mapped inside if needed
+      await addTransaction({ 
         productId: newProduct.id,
         productName: newProduct.name,
         type: 'initial',
@@ -259,22 +248,19 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         notes: 'Initial stock added',
       });
        setProducts(prev => [...prev, newProduct]);
-       // Transaction list will be updated by addTransaction
     }
     setIsLoading(false);
     return dbData ? mapDbProductToProduct(dbData) : null;
   };
 
   const updateProduct = async (productId: string, productUpdateData: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'stock' | 'user_id'>>): Promise<Product | null> => {
-    if (!user) return null;
+    if (!user || !supabase) return null;
     setIsLoading(true);
 
     const dbPayload = mapProductToDbPayload(productUpdateData);
-    dbPayload.updated_at = new Date().toISOString(); // Ensure updated_at is set
+    dbPayload.updated_at = new Date().toISOString(); 
 
-    if (Object.keys(dbPayload).length <= 1 && dbPayload.updated_at) { // Only updated_at
-        // To prevent unnecessary DB call if only updated_at is set (which is automatic)
-        // However, Supabase client might filter this out. If behavior is problematic, this check can be removed.
+    if (Object.keys(dbPayload).length <= 1 && dbPayload.updated_at) {
         const currentProduct = products.find(p => p.id === productId);
         setIsLoading(false);
         return currentProduct || null;
@@ -305,10 +291,8 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const deleteProduct = async (productId: string) => {
-    if (!user) return;
+    if (!user || !supabase) return;
     setIsLoading(true);
-    // Before deleting product, consider implications on transactions and order_items (FK constraints)
-    // Current DB schema is ON DELETE SET NULL for product_id in transactions and order_items.
     const { error } = await supabase.from('products').delete().eq('id', productId).eq('user_id', user.id);
     if (error) {
       console.error('Error deleting product:', error);
@@ -316,8 +300,6 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     } else {
       setProducts(prev => prev.filter(p => p.id !== productId));
       setTransactions(prev => prev.filter(t => t.productId !== productId));
-      // Orders and order_items referencing this product will now have a null product_id
-      // Re-fetch orders or manually update them if needed for UI consistency, though product_name is denormalized
     }
     setIsLoading(false);
   };
@@ -332,8 +314,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'timestamp' | 'user_id'>): Promise<Transaction | null> => {
-    if (!user) return null;
-    // Map camelCase from transactionData to snake_case for DB
+    if (!user || !supabase) return null;
     const newTransactionDbPayload = {
       product_id: transactionData.productId,
       product_name: transactionData.productName,
@@ -355,7 +336,6 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
     if (dbData) {
-        // Map back from DB snake_case to JS camelCase Transaction type
         const newTransaction: Transaction = {
             id: dbData.id,
             productId: dbData.product_id,
@@ -376,7 +356,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const updateStock = async (productId: string, quantityChange: number, type: Transaction['type'], notes?: string, pricePerUnit?: number): Promise<Product | null> => {
-    if (!user) return null;
+    if (!user || !supabase) return null;
     
     const product = getProductById(productId); 
     if (!product) {
@@ -390,7 +370,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: updatedDbProductData, error: productUpdateError } = await supabase
       .from('products')
-      .update({ stock: newStock, updated_at: new Date().toISOString() }) // stock is already snake_case, updated_at as well
+      .update({ stock: newStock, updated_at: new Date().toISOString() }) 
       .eq('id', productId)
       .eq('user_id', user.id)
       .select()
@@ -406,7 +386,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     if (updatedDbProductData) {
       const updatedProduct = mapDbProductToProduct(updatedDbProductData);
       setProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p));
-      await addTransaction({ // addTransaction handles its own mapping
+      await addTransaction({ 
         productId,
         productName: product.name,
         type,
@@ -425,7 +405,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addOrder = async (orderData: Omit<Order, 'id' | 'orderDate' | 'orderNumber' | 'status' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Order | null> => {
-    if (!user) return null;
+    if (!user || !supabase) return null;
     setIsLoading(true);
     
     const { count: orderCount, error: countError } = await supabase
@@ -443,7 +423,6 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     const now = new Date().toISOString();
     const newOrderNumberGenerated = `ORD-${String((orderCount || 0) + 1).padStart(4, '0')}`;
     
-    // Map Order (camelCase) to DB (snake_case) for insert
     const orderDbPayload = {
       user_id: user.id,
       order_number: newOrderNumberGenerated,
@@ -451,7 +430,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       subtotal: orderData.subtotal,
       total_discount: orderData.totalDiscount,
       grand_total: orderData.grandTotal,
-      status: 'completed' as OrderStatus, // Assuming all orders are completed on creation for now
+      status: 'completed' as OrderStatus, 
       notes: orderData.notes,
       created_at: now,
       updated_at: now,
@@ -470,7 +449,6 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
 
-    // Map OrderItem (camelCase) to DB (snake_case) for insert
     const orderItemsDbPayload = orderData.items.map(item => ({
       order_id: newOrderDbResult.id,
       user_id: user.id, 
@@ -489,7 +467,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     if (itemsError) {
       console.error('Error adding order items:', itemsError);
       toast({ title: "Order Item Error", description: itemsError.message, variant: "destructive"});
-      await supabase.from('orders').delete().eq('id', newOrderDbResult.id); // Rollback order
+      await supabase.from('orders').delete().eq('id', newOrderDbResult.id); 
       setIsLoading(false);
       return null;
     }
@@ -499,18 +477,19 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     );
     await Promise.all(updatedProductPromises);
     
-    // Map back the created order from DB (snake_case) to JS (camelCase)
     const completeOrder: Order = {
       id: newOrderDbResult.id,
       orderNumber: newOrderDbResult.order_number,
       orderDate: newOrderDbResult.order_date,
-      items: orderData.items, // items are already in correct camelCase format from input
+      items: orderData.items, 
       subtotal: newOrderDbResult.subtotal,
       totalDiscount: newOrderDbResult.total_discount,
       grandTotal: newOrderDbResult.grand_total,
       status: newOrderDbResult.status as OrderStatus,
       notes: newOrderDbResult.notes,
-      // user_id, created_at, updated_at are not in the Order type for frontend
+      // These are not in the Order type for frontend, but exist in DB
+      // createdAt: newOrderDbResult.created_at, 
+      // updatedAt: newOrderDbResult.updated_at,
     };
     
     setOrders(prev => [completeOrder, ...prev.sort((a,b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())]);
@@ -538,7 +517,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         updateStock,
         addOrder,
         getOrderById,
-        isLoading: isLoading || authIsLoading,
+        isLoading: isLoading || authIsLoading, // Combine loading states
         fetchStoreData
     }}>
       {children}
