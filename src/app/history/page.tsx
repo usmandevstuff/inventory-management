@@ -31,12 +31,15 @@ import {
   DialogFooter,
   DialogClose
 } from "@/components/ui/dialog";
+import { useToast } from '@/hooks/use-toast';
+
 
 type SortableOrderColumns = 'orderNumber' | 'orderDate' | 'grandTotal' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 export default function HistoryPage() {
   const { orders, isLoading } = useStore();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [sortColumn, setSortColumn] = useState<SortableOrderColumns>('orderDate');
@@ -101,15 +104,148 @@ export default function HistoryPage() {
   };
 
   const handlePrintInvoice = () => {
-    const printContents = document.getElementById("invoice-print-area")?.innerHTML;
-    const originalContents = document.body.innerHTML;
-    if (printContents && isClient) {
-        document.body.innerHTML = `<div class="print-container p-4 sm:p-8 font-body">${printContents}</div><style>@media print { body * { visibility: hidden; } .print-container, .print-container * { visibility: visible; } .print-container { position: absolute; left: 0; top: 0; width: 100%; font-family: 'Poppins', serif; } .print-container h1, .print-container h2, .print-container h3, .print-container h4 { font-family: 'Raleway', sans-serif;} .print-container .font-headline { font-family: 'Raleway', sans-serif !important; } .print-container .font-body { font-family: 'Poppins', serif !important; } .print-container .text-primary { color: hsl(var(--primary)) !important; } .print-container .text-foreground { color: hsl(var(--foreground)) !important; } .print-container .text-muted-foreground { color: hsl(var(--muted-foreground)) !important; } .print-container .bg-secondary\\/30 { background-color: hsla(var(--secondary), 0.3) !important; } .print-container .border-b { border-bottom-width: 1px !important; } .print-container .border-t { border-top-width: 1px !important; } .print-container .pb-4 { padding-bottom: 1rem !important; } .print-container .pt-2 { padding-top: 0.5rem !important; } .print-container .pt-6 { padding-top: 1.5rem !important; } .print-container .mt-1 { margin-top: 0.25rem !important; } .print-container .mt-6 { margin-top: 1.5rem !important; } .print-container .mb-1 { margin-bottom: 0.25rem !important; } .print-container .mb-2 { margin-bottom: 0.5rem !important; } .print-container .mb-6 { margin-bottom: 1.5rem !important; } .print-container .p-3 { padding: 0.75rem !important; } .print-container .rounded-md { border-radius: 0.375rem !important; } .print-container table { width: 100%; border-collapse: collapse; } .print-container th, .print-container td { border: 1px solid hsl(var(--border)); padding: 0.25rem 0.5rem; text-align: left;} .print-container .text-right { text-align: right !important; } .print-container .text-center { text-align: center !important; } .print-container .font-semibold { font-weight: 600 !important; } .print-container .font-bold { font-weight: 700 !important; } .print-container .font-extrabold { font-weight: 800 !important; } .print-container .text-xs { font-size: 0.75rem !important; } .print-container .text-sm { font-size: 0.875rem !important; } .print-container .text-md { font-size: 1rem !important; } .print-container .text-lg { font-size: 1.125rem !important; } .print-container .text-xl { font-size: 1.25rem !important; } .print-container .text-2xl { font-size: 1.5rem !important; } .print-container .text-3xl { font-size: 1.875rem !important; } }</style>`;
-        window.print();
-        document.body.innerHTML = originalContents;
-        window.location.reload(); 
+    const printArea = document.getElementById("invoice-print-area");
+    if (!printArea || !isClient) {
+      toast({
+        title: "Print Error",
+        description: "Could not find invoice content to print.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const printContents = printArea.innerHTML;
+
+    const themeRootColors = `
+      :root {
+        --background: 120 11% 95%;
+        --foreground: 0 0% 10%;
+        --card: 0 0% 100%;
+        --card-foreground: 0 0% 10%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 0 0% 10%;
+        --primary: 176 25% 54%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 176 20% 88%;
+        --secondary-foreground: 176 25% 25%;
+        --muted: 176 15% 92%;
+        --muted-foreground: 176 10% 45%;
+        --accent: 16 70% 70%;
+        --accent-foreground: 0 0% 10%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 176 20% 80%;
+        --input: 176 20% 90%;
+        --ring: 16 70% 70%;
+        --radius: 0.5rem;
+      }
+    `;
+
+    const originalPrintStyles = `
+      .print-container { position: relative; width: 100%; font-family: 'Poppins', serif; }
+      .print-container h1, .print-container h2, .print-container h3, .print-container h4 { font-family: 'Raleway', sans-serif;}
+      .print-container .font-headline { font-family: 'Raleway', sans-serif !important; }
+      .print-container .font-body { font-family: 'Poppins', serif !important; }
+      .print-container .text-primary { color: hsl(var(--primary)) !important; }
+      .print-container .text-foreground { color: hsl(var(--foreground)) !important; }
+      .print-container .text-muted-foreground { color: hsl(var(--muted-foreground)) !important; }
+      .print-container .bg-secondary\\/30 { background-color: hsla(var(--secondary), 0.3) !important; }
+      .print-container .border-b { border-bottom-width: 1px !important; border-bottom-color: hsl(var(--border)) !important; border-bottom-style: solid !important; }
+      .print-container .border-t { border-top-width: 1px !important; border-top-color: hsl(var(--border)) !important; border-top-style: solid !important; }
+      .print-container .pb-4 { padding-bottom: 1rem !important; }
+      .print-container .pt-2 { padding-top: 0.5rem !important; }
+      .print-container .pt-6 { padding-top: 1.5rem !important; }
+      .print-container .mt-1 { margin-top: 0.25rem !important; }
+      .print-container .mt-6 { margin-top: 1.5rem !important; }
+      .print-container .mb-1 { margin-bottom: 0.25rem !important; }
+      .print-container .mb-2 { margin-bottom: 0.5rem !important; }
+      .print-container .mb-6 { margin-bottom: 1.5rem !important; }
+      .print-container .p-3 { padding: 0.75rem !important; }
+      .print-container .rounded-md { border-radius: 0.375rem !important; }
+      .print-container table { width: 100%; border-collapse: collapse; }
+      .print-container th, .print-container td { border: 1px solid hsl(var(--border)); padding: 0.25rem 0.5rem; text-align: left;}
+      .print-container .text-right { text-align: right !important; }
+      .print-container .text-center { text-align: center !important; }
+      .print-container .font-semibold { font-weight: 600 !important; }
+      .print-container .font-bold { font-weight: 700 !important; }
+      .print-container .font-extrabold { font-weight: 800 !important; }
+      .print-container .text-xs { font-size: 0.75rem !important; line-height: 1rem !important;}
+      .print-container .text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important;}
+      .print-container .text-md { font-size: 1rem !important; line-height: 1.5rem !important;}
+      .print-container .text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important;}
+      .print-container .text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important;}
+      .print-container .text-2xl { font-size: 1.5rem !important; line-height: 2rem !important;}
+      .print-container .text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important;}
+    `;
+    
+    const finalPrintStyles = `
+      <style type="text/css">
+        ${themeRootColors}
+        body { 
+          font-family: 'Poppins', serif; 
+          background-color: #fff;
+          color: #000;
+          margin: 0;
+          padding: 0;
+        }
+        ${originalPrintStyles}
+        @media print {
+          @page { 
+            size: auto;
+            margin: 0.5in;
+          }
+          body { 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            margin: 0;
+          }
+          .print-container {
+             padding: 0 !important; /* Reset padding if @page margin is used */
+          }
+          a[href]:after { content: none !important; }
+          img { max-width: 100% !important; break-inside: avoid; }
+          table { width: 100% !important; border-collapse: collapse !important; page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          th, td { border: 1px solid #ccc !important; padding: 4px 8px !important; }
+          thead { display: table-header-group !important; }
+          tfoot { display: table-footer-group !important; }
+          .no-print { display: none !important; }
+        }
+      </style>
+    `;
+
+    const printWindow = window.open('', '_blank', 'height=800,width=800,menubar=yes,toolbar=yes,scrollbars=yes,resizable=yes');
+
+    if (printWindow) {
+      printWindow.document.write('<html><head><title>Invoice</title>');
+      printWindow.document.write('<link rel="preconnect" href="https://fonts.googleapis.com">');
+      printWindow.document.write('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>');
+      printWindow.document.write('<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">');
+      printWindow.document.write(finalPrintStyles);
+      printWindow.document.write('</head><body>');
+      // Wrap the content in the .print-container class for the styles to apply
+      printWindow.document.write(`<div class="print-container p-4 sm:p-8">`); 
+      printWindow.document.write(printContents);
+      printWindow.document.write('</div>');
+      printWindow.document.write('</body></html>');
+      printWindow.document.close();
+      printWindow.focus();
+      
+      // Delay print to allow content and styles to load
+      setTimeout(() => {
+        printWindow.print();
+        // Optionally close the window after printing, but often users want to keep it for PDF saving
+        // printWindow.close(); 
+      }, 500);
+    } else {
+      toast({
+        title: "Print Error",
+        description: "Could not open print window. Please check your browser's pop-up blocker settings.",
+        variant: "destructive",
+      });
     }
   };
+
 
   if (isLoading && !isClient) { 
     return <MainAppLayoutWrapper><div className="flex justify-center items-center h-full"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div></MainAppLayoutWrapper>;
@@ -278,3 +414,6 @@ export default function HistoryPage() {
     </MainAppLayoutWrapper>
   );
 }
+
+
+    
