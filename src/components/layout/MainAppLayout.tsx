@@ -117,7 +117,7 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
   }
   
   return (
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen bg-background w-full">
         <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-md">
           <SidebarHeader className="p-3 items-center border-b border-sidebar-border">
              <Logo collapsed={!isSidebarOpen} />

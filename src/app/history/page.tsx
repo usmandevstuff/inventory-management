@@ -130,7 +130,7 @@ export default function HistoryPage() {
                   placeholder="Search by Order ID, product, notes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="font-body pl-10 h-9 sm:h-10 w-full"
+                  className="font-body pl-10 h-9 sm:h-10 w-full text-xs sm:text-sm"
                 />
               </div>
               <Popover>
@@ -242,7 +242,7 @@ export default function HistoryPage() {
                                       </Table>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 text-xs sm:text-sm md:text-md w-full ml-auto max-w-xs mr-0">
+                                    <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-1 text-xs sm:text-sm md:text-md w-full ml-auto max-w-xs sm:max-w-sm mr-0">
                                         <span className="font-semibold text-muted-foreground">Subtotal:</span><span className="text-right">${selectedOrder.subtotal.toFixed(2)}</span>
                                         <span className="font-semibold text-muted-foreground">Total Discount:</span><span className="text-right text-green-600">-${selectedOrder.totalDiscount.toFixed(2)}</span>
                                         <span className="font-bold text-md sm:text-lg md:text-xl text-primary border-t pt-1 sm:pt-2 mt-1">Grand Total:</span><span className="text-right font-extrabold text-md sm:text-lg md:text-xl text-primary border-t pt-1 sm:pt-2 mt-1">${selectedOrder.grandTotal.toFixed(2)}</span>
@@ -276,3 +276,5 @@ export default function HistoryPage() {
     </MainAppLayoutWrapper>
   );
 }
+
+    
