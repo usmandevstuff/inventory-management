@@ -11,6 +11,10 @@ import { ThemeProvider } from "next-themes";
 export const metadata: Metadata = {
   title: 'Threadcount Tracker',
   description: 'Inventory management for your clothing store',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+  },
 };
 
 export default function RootLayout({
