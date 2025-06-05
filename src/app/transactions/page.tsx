@@ -16,11 +16,20 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO, isValid } from 'date-fns';
-import { Calendar as CalendarIcon, Search, ChevronDown, ChevronUp, Loader2, Repeat, FileText, XCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Search, ChevronDown, ChevronUp, Loader2, Repeat, FileText, XCircle, Info, View } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import type { Transaction } from '@/lib/types';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription as ShadcnDialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
 
 type SortableTransactionColumns = 'timestamp' | 'productName' | 'type' | 'quantityChange' | 'stockAfter';
 type SortDirection = 'asc' | 'desc';
@@ -31,6 +40,7 @@ export default function TransactionsPage() {
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [sortColumn, setSortColumn] = useState<SortableTransactionColumns>('timestamp');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -135,7 +145,7 @@ export default function TransactionsPage() {
                   placeholder="Search by product, type, notes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="font-body pl-10 h-9 sm:h-10 w-full"
+                  className="font-body pl-10 h-9 sm:h-10 w-full text-xs sm:text-sm"
                 />
               </div>
               <Popover>
@@ -185,11 +195,16 @@ export default function TransactionsPage() {
                     <TableHead className="text-center font-headline text-xs sm:text-sm p-2 sm:p-3 hidden md:table-cell">Stock Before</TableHead>
                     <TableHead onClick={() => handleSort('stockAfter')} className="text-center cursor-pointer hover:text-primary font-headline text-xs sm:text-sm p-2 sm:p-3">Stock After <SortIndicator column="stockAfter"/></TableHead>
                     <TableHead className="font-headline text-xs sm:text-sm p-2 sm:p-3 hidden lg:table-cell">Notes</TableHead>
+                    <TableHead className="text-center font-headline text-xs sm:text-sm p-2 sm:p-3">Details</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredAndSortedTransactions.map((tx) => (
-                    <TableRow key={tx.id} className="hover:bg-secondary/50 transition-colors font-body">
+                    <TableRow 
+                        key={tx.id} 
+                        className="hover:bg-primary/10 transition-colors font-body cursor-pointer"
+                        onClick={() => setSelectedTransaction(tx)}
+                    >
                       <TableCell className="p-2 sm:p-3 whitespace-nowrap text-xs sm:text-sm">{format(parseISO(tx.timestamp), 'PP p')}</TableCell>
                       <TableCell className="font-medium p-2 sm:p-3 whitespace-nowrap text-xs sm:text-sm">{tx.productName || 'N/A'}</TableCell>
                       <TableCell className="p-2 sm:p-3">
@@ -205,7 +220,12 @@ export default function TransactionsPage() {
                       </TableCell>
                       <TableCell className="text-center p-2 sm:p-3 hidden md:table-cell text-xs sm:text-sm">{tx.stockBefore}</TableCell>
                       <TableCell className="text-center p-2 sm:p-3 font-bold text-xs sm:text-sm">{tx.stockAfter}</TableCell>
-                      <TableCell className="p-2 sm:p-3 text-xs text-muted-foreground max-w-[80px] sm:max-w-[100px] md:max-w-[150px] truncate hidden lg:table-cell" title={tx.notes}>{tx.notes || '-'}</TableCell>
+                      <TableCell className="p-2 sm:p-3 text-xs text-muted-foreground max-w-[80px] sm:max-w-[100px] md:max-w-[120px] truncate hidden lg:table-cell" title={tx.notes || ''}>{tx.notes || '-'}</TableCell>
+                       <TableCell className="text-center p-2 sm:p-3">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 hover:bg-primary/20" onClick={(e) => { e.stopPropagation(); setSelectedTransaction(tx); }}>
+                            <View className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -215,6 +235,56 @@ export default function TransactionsPage() {
           </CardContent>
         </Card>
       </div>
+      {selectedTransaction && (
+        <Dialog open={!!selectedTransaction} onOpenChange={(open) => !open && setSelectedTransaction(null)}>
+          <DialogContent className="sm:max-w-md md:max-w-lg font-body data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 max-h-[90vh] flex flex-col">
+            <DialogHeader className="pb-3 sm:pb-4 border-b">
+              <DialogTitle className="font-headline text-xl sm:text-2xl md:text-3xl text-primary">Transaction Details</DialogTitle>
+              <ShadcnDialogDescription className="text-xs sm:text-sm pt-1">
+                ID: <span className="font-mono text-xs font-medium text-foreground">{selectedTransaction.id}</span>
+              </ShadcnDialogDescription>
+            </DialogHeader>
+            <div className="flex-grow overflow-y-auto pr-2 -mr-2 sm:pr-0 sm:-mr-0 py-3 sm:py-4 space-y-3 sm:space-y-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                <div><span className="font-semibold text-muted-foreground">Date:</span> {format(parseISO(selectedTransaction.timestamp), 'PPP p')}</div>
+                <div><span className="font-semibold text-muted-foreground">Type:</span> <Badge variant={getTransactionTypeBadgeVariant(selectedTransaction.type)} className="capitalize text-xs">{selectedTransaction.type}</Badge></div>
+              </div>
+               <div className="border-t pt-3 sm:pt-4">
+                <h4 className="font-headline text-md sm:text-lg text-primary mb-1.5 sm:mb-2">Product Information</h4>
+                <div><span className="font-semibold text-muted-foreground">Product Name:</span> {selectedTransaction.productName || 'N/A'}</div>
+                <div><span className="font-semibold text-muted-foreground">Product ID:</span> <span className="font-mono text-xs">{selectedTransaction.productId || 'N/A'}</span></div>
+              </div>
+              <div className="border-t pt-3 sm:pt-4">
+                <h4 className="font-headline text-md sm:text-lg text-primary mb-1.5 sm:mb-2">Stock Change Details</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2">
+                    <div><span className="font-semibold text-muted-foreground">Change:</span> <span className={selectedTransaction.quantityChange < 0 ? 'text-destructive font-bold' : 'text-green-600 font-bold'}>{formatQuantityChange(selectedTransaction)}</span></div>
+                    <div><span className="font-semibold text-muted-foreground">Stock Before:</span> {selectedTransaction.stockBefore}</div>
+                    <div><span className="font-semibold text-muted-foreground">Stock After:</span> {selectedTransaction.stockAfter}</div>
+                </div>
+              </div>
+              {(selectedTransaction.type === 'sale' || selectedTransaction.pricePerUnit !== undefined) && (
+                <div className="border-t pt-3 sm:pt-4">
+                  <h4 className="font-headline text-md sm:text-lg text-primary mb-1.5 sm:mb-2">Financials</h4>
+                  <div><span className="font-semibold text-muted-foreground">Price/Unit:</span> ${selectedTransaction.pricePerUnit?.toFixed(2) || 'N/A'}</div>
+                  <div><span className="font-semibold text-muted-foreground">Total Value:</span> ${selectedTransaction.totalValue?.toFixed(2) || 'N/A'}</div>
+                </div>
+              )}
+              {selectedTransaction.notes && (
+                <div className="border-t pt-3 sm:pt-4">
+                  <h4 className="font-headline text-md sm:text-lg text-primary mb-1.5 sm:mb-2">Notes</h4>
+                  <p className="bg-secondary/30 p-2 sm:p-3 rounded-md text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap">{selectedTransaction.notes}</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter className="pt-4 sm:pt-6 border-t mt-auto">
+              <DialogClose asChild><Button type="button" className="font-body text-xs sm:text-sm w-full sm:w-auto">Close</Button></DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </MainAppLayoutWrapper>
   );
 }
+
+
+    
