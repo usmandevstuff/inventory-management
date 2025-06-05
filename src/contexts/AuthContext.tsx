@@ -43,15 +43,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       async (event: AuthChangeEvent, session: Session | null) => {
         setUser(session?.user ?? null);
         setIsLoading(false); // Update loading state on any auth change
-
-        // No need to manually push routes for SIGNED_IN/SIGNED_OUT here,
-        // as middleware should handle route protection and redirection.
-        // The primary role of onAuthStateChange here is to update client-side user state.
         
-        if (event === 'PASSWORD_RECOVERY') {
-          // This event might be useful if you want to show a specific UI
-          // when the user lands on the password recovery URL.
-          // For now, we assume the user is redirected to a form to enter new password.
+        if (event === 'SIGNED_IN') {
+          // If login was successful and onAuthStateChange picked it up,
+          // router.refresh() should have already been called by the login function.
+          // The middleware would then handle redirection.
+          // We can add an extra refresh here if needed, but it might be redundant.
+          // router.refresh(); 
+        } else if (event === 'SIGNED_OUT') {
+          // router.refresh(); // Ensure middleware re-evaluates after sign out
         }
       }
     );
@@ -59,20 +59,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, [supabase, router]); // Add supabase to dependency array
+  }, [supabase, router]);
 
-  const login = async (email?: string, password?: string) => {
+  const login = async (email?: string, password?: string): Promise<void> => {
     if (!email || !password) {
         toast({ title: "Login Failed", description: "Email and password are required.", variant: "destructive"});
         return;
     }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    console.log("Attempting login for:", email); // Browser console log
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
     if (error) {
       toast({ title: "Login Failed", description: error.message, variant: "destructive"});
-      console.error('Login error:', error.message);
+      console.error('Login error:', error.message, error); // Log the full error object
+    } else if (data && data.session) {
+      // Successful login according to Supabase client
+      console.log('Login successful (client-side):', data.session.user?.email); // Browser console log
+      // The onAuthStateChange listener will/should update the user state.
+      // Router.refresh() will trigger middleware to read the new session cookie and redirect.
+      toast({ title: "Login Succeeded (Client)", description: "Refreshing session...", variant: "default", duration: 3000 }); // Temporary feedback
+      router.refresh(); // This is crucial for middleware to pick up the new session
     } else {
-      // router.push('/dashboard'); // Middleware will handle this redirection
-      router.refresh(); // Refresh to ensure server components re-render with new session
+      // This case should ideally not happen if there's no error and no session.
+      toast({ title: "Login Ambiguous", description: "Login did not return an error or a session.", variant: "destructive"});
+      console.error('Login ambiguous: No error, no session. Data:', data);
     }
   };
 
@@ -85,10 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email, 
       password,
       options: {
-        // The redirect URL should be handled by Supabase settings or your password recovery page
-        // For email verification, Supabase sends a link. When user clicks it, they are typically redirected
-        // to your site, and the session is confirmed.
-        emailRedirectTo: `${window.location.origin}/auth/callback`, // Standard callback, Supabase handles verification
+        emailRedirectTo: `${window.location.origin}/auth/callback`, 
       }
     });
 
@@ -102,7 +109,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           variant: "default",
           duration: 10000 
         });
-      // router.push('/login'); // User might be auto-logged in or need to verify. Middleware handles redirects.
       router.refresh();
     }
   };
@@ -113,14 +119,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast({ title: "Logout Failed", description: error.message, variant: "destructive"});
         console.error('Logout error:', error.message);
     }
-    setUser(null);
-    // router.push('/login'); // Middleware will handle this redirection
+    // setUser(null); // onAuthStateChange will handle this
     router.refresh(); 
   };
 
   const sendPasswordResetEmail = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/settings?view=update_password`, // Or a dedicated password update page
+      redirectTo: `${window.location.origin}/settings?view=update_password`, 
     });
     if (error) {
       toast({ title: "Password Reset Failed", description: error.message, variant: "destructive"});
@@ -158,8 +163,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   return (
     <AuthContext.Provider value={{ 
-        supabase, // Provide the client
-        isAuthenticated: !!user && !isLoading, // Only authenticated if not loading and user exists
+        supabase, 
+        isAuthenticated: !!user && !isLoading, 
         user, 
         login, 
         signup, 
@@ -181,3 +186,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
